@@ -159,6 +159,10 @@ export async function importExcel(formData: FormData) {
 
     let inserted = 0;
 
+    // Find the current max case number so we can auto-assign new numbers for duplicates
+    const maxResult = await db.case.aggregate({ _max: { caseNo: true } });
+    let nextCaseNo = (maxResult._max.caseNo ?? 0) + 1;
+
     for (const row of rows) {
       // Normalize to internal field names
       const r: Record<string, unknown> = {};
@@ -167,11 +171,16 @@ export async function importExcel(formData: FormData) {
         if (field) r[field] = v;
       }
 
-      const caseNo = asInt(r.caseNo);
+      let caseNo = asInt(r.caseNo);
       if (!caseNo) continue;
-      // Skip if exists
+
+      // If case number already exists, auto-assign the next available number
       const exists = await db.case.findUnique({ where: { caseNo } });
-      if (exists) continue;
+      if (exists) {
+        caseNo = nextCaseNo;
+      }
+      // Always keep nextCaseNo ahead
+      if (caseNo >= nextCaseNo) nextCaseNo = caseNo + 1;
 
       const complaintDate = asDate(r.complaintDate);
       if (!complaintDate) continue;

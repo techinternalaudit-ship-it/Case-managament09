@@ -192,6 +192,7 @@ export async function updateCase(formData: FormData) {
 
   revalidatePath(`/cases/${id}`);
   revalidatePath("/cases");
+  redirect(`/cases/${id}?saved=1`);
 }
 
 export async function assignCase(formData: FormData) {
@@ -212,6 +213,7 @@ export async function assignCase(formData: FormData) {
   });
   revalidatePath(`/cases/${id}`);
   revalidatePath("/cases");
+  redirect(`/cases/${id}?assigned=1`);
 }
 
 export async function uploadAttachment(formData: FormData) {
@@ -255,6 +257,7 @@ export async function uploadAttachment(formData: FormData) {
   });
 
   revalidatePath(`/cases/${id}`);
+  redirect(`/cases/${id}?uploaded=1`);
 }
 
 export async function listVisibleCases(scope: "mine" | "all" = "mine") {

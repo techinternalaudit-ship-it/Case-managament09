@@ -5,9 +5,12 @@ import { can } from "@/lib/rbac";
 import { formatDate, formatDateTime, severityColor, statusColor, STATUS_LABELS, STATUS_LIST } from "@/lib/utils";
 import { assignCase, updateCase, uploadAttachment } from "../actions";
 import { Icon } from "@/components/icon";
+import { Toast } from "@/components/toast";
+import { SaveButton } from "@/components/save-button";
 
-export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CaseDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; assigned?: string; uploaded?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
   const u = session.user;
@@ -38,6 +41,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-5">
+      {sp.saved && <Toast message="Case updated successfully." />}
+      {sp.assigned && <Toast message="Investigator assigned successfully." />}
+      {sp.uploaded && <Toast message="File uploaded successfully." />}
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -144,7 +150,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
           {canEdit && (
             <div className="md:col-span-3 flex justify-end pt-2">
-              <button className="btn-primary">Save changes</button>
+              <SaveButton label="Save changes" />
             </div>
           )}
         </form>
