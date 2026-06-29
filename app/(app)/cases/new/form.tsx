@@ -77,8 +77,8 @@ export function CaseIntakeForm({
             </select>
           </Field>
           <Field label="Complaint Date*"><input className="input" name="complaintDate" type="date" required /></Field>
-          <Field label="Escalation Date"><input className="input" name="escalationDate" type="date" /></Field>
-          <Field label="Case Assign Date"><input className="input" name="assignDate" type="date" /></Field>
+          <Field label="Escalation Date*"><input className="input" name="escalationDate" type="date" required /></Field>
+          <Field label="Case Assign Date*"><input className="input" name="assignDate" type="date" required /></Field>
           <Field label="Severity*">
             <select className="input" name="severity" required defaultValue="MEDIUM">
               <option value="LOW">Low</option>
@@ -87,9 +87,9 @@ export function CaseIntakeForm({
               <option value="CRITICAL">Critical</option>
             </select>
           </Field>
-          <Field label="Responsibility (Investigator)">
-            <select className="input" name="assigneeId" defaultValue="">
-              <option value="">— Unassigned —</option>
+          <Field label="Responsibility (Investigator)*">
+            <select className="input" name="assigneeId" required defaultValue="">
+              <option value="" disabled>Select…</option>
               {investigators.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
             </select>
           </Field>
@@ -112,9 +112,9 @@ export function CaseIntakeForm({
               {subOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
-          <Field label="Sale / Not-Sale">
-            <select className="input" name="saleNonSale" defaultValue="">
-              <option value="">—</option><option>Sale</option><option>Not Sale</option>
+          <Field label="Sale / Not-Sale*">
+            <select className="input" name="saleNonSale" required defaultValue="">
+              <option value="" disabled>Select…</option><option>Sale</option><option>Not Sale</option>
             </select>
           </Field>
         </div>
@@ -123,15 +123,15 @@ export function CaseIntakeForm({
       <div className={step === 2 ? "" : "hidden"}>
         <h2 className="section-title mb-3">Complainant (who reported)</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Type of Complainant">
-            <select className="input" name="complainantType" defaultValue="">
-              <option value="">—</option><option>Employee</option><option>External</option><option>Anonymous</option>
+          <Field label="Type of Complainant*">
+            <select className="input" name="complainantType" required defaultValue="">
+              <option value="" disabled>Select…</option><option>Employee</option><option>External</option><option>Anonymous</option>
             </select>
           </Field>
-          <Field label="Name"><input className="input" name="complainantName" /></Field>
-          <Field label="E-code"><input className="input" name="complainantECode" /></Field>
-          <Field label="Entity"><input className="input" name="complainantEntity" placeholder="OCL / PSPL / …" /></Field>
-          <Field label="Grade"><input className="input" name="complainantGrade" /></Field>
+          <Field label="Name*"><input className="input" name="complainantName" required /></Field>
+          <Field label="E-code*"><input className="input" name="complainantECode" required /></Field>
+          <Field label="Entity*"><input className="input" name="complainantEntity" required placeholder="OCL / PSPL / …" /></Field>
+          <Field label="Grade*"><input className="input" name="complainantGrade" required /></Field>
         </div>
       </div>
 
@@ -139,27 +139,27 @@ export function CaseIntakeForm({
         <h2 className="section-title mb-3">Respondent (who is accused)</h2>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Name*"><input className="input" name="respondentName" required /></Field>
-          <Field label="E-code"><input className="input" name="respondentECode" /></Field>
+          <Field label="E-code*"><input className="input" name="respondentECode" required /></Field>
           <Field label="Entity*"><input className="input" name="respondentEntity" required placeholder="OCL / PSPL / …" /></Field>
-          <Field label="Grade"><input className="input" name="respondentGrade" /></Field>
+          <Field label="Grade*"><input className="input" name="respondentGrade" required /></Field>
         </div>
       </div>
 
       <div className={step === 4 ? "" : "hidden"}>
         <h2 className="section-title mb-3">Where</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="City"><input className="input" name="city" /></Field>
-          <Field label="State"><input className="input" name="state" /></Field>
+          <Field label="City*"><input className="input" name="city" required /></Field>
+          <Field label="State*"><input className="input" name="state" required /></Field>
         </div>
       </div>
 
       <div className={step === 5 ? "" : "hidden"}>
         <h2 className="section-title mb-3">Org context</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="HRBP / HR SPOC"><input className="input" name="hrbpSpoc" /></Field>
-          <Field label="HOD of Respondent"><input className="input" name="hodName" /></Field>
-          <Field label="HOD Entity"><input className="input" name="hodEntity" /></Field>
-          <Field label="Department of Respondent"><input className="input" name="respondentDept" /></Field>
+          <Field label="HRBP / HR SPOC*"><input className="input" name="hrbpSpoc" required /></Field>
+          <Field label="HOD of Respondent*"><input className="input" name="hodName" required /></Field>
+          <Field label="HOD Entity*"><input className="input" name="hodEntity" required /></Field>
+          <Field label="Department of Respondent*"><input className="input" name="respondentDept" required /></Field>
         </div>
       </div>
 

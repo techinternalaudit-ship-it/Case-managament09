@@ -31,10 +31,16 @@ export default async function CaseDetailPage({ params, searchParams }: { params:
   // View permission check
   if (!can(u, "case:view")) redirect("/cases");
 
-  const investigators = await db.user.findMany({
-    where: { role: { in: ["INVESTIGATOR", "ADMIN"] }, active: true },
-    orderBy: { name: "asc" },
-  });
+  const [investigators, categories] = await Promise.all([
+    db.user.findMany({
+      where: { role: { in: ["INVESTIGATOR", "ADMIN"] }, active: true },
+      orderBy: { name: "asc" },
+    }),
+    db.lookupCategory.findMany({
+      include: { subs: { orderBy: { name: "asc" } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const canEdit = can(u, "case:edit-any") || (can(u, "case:edit-assigned") && c.assigneeId === u.id);
   const canAssign = can(u, "case:assign");
@@ -71,31 +77,95 @@ export default async function CaseDetailPage({ params, searchParams }: { params:
         )}
       </div>
 
-      {/* Intake summary */}
+      {/* Intake details — editable by admin */}
       <section className="card p-5">
         <h2 className="section-title mb-4">
           <div className="h-6 w-6 rounded-lg bg-primary-100 text-primary-600 grid place-items-center"><Icon name="briefcase" className="h-3.5 w-3.5" /></div>
           Intake Details
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
-          <DataRow k="Escalation Channel" v={c.escalationChannel} />
-          <DataRow k="Complaint Date" v={formatDate(c.complaintDate)} />
-          <DataRow k="Escalation Date" v={formatDate(c.escalationDate)} />
-          <DataRow k="Assign Date" v={formatDate(c.assignDate)} />
-          <DataRow k="Month" v={c.month} />
-          <DataRow k="Responsibility" v={c.assignee?.name ?? "—"} />
-          <DataRow k="Category" v={`${c.category.name} / ${c.subCategory.name}`} />
-          <DataRow k="Sale / Not-Sale" v={c.saleNonSale ?? "—"} />
-          <DataRow k="Complainant" v={`${c.complainantName ?? "—"} (${c.complainantType ?? "—"})`} />
-          <DataRow k="Complainant Entity" v={c.complainantEntity ?? "—"} />
-          <DataRow k="Respondent" v={`${c.respondentName} (${c.respondentECode ?? "—"})`} />
-          <DataRow k="Respondent Entity" v={c.respondentEntity} />
-          <DataRow k="Respondent Grade" v={c.respondentGrade ?? "—"} />
-          <DataRow k="City / State" v={`${c.city ?? "—"}, ${c.state ?? "—"}`} />
-          <DataRow k="HRBP / SPOC" v={c.hrbpSpoc ?? "—"} />
-          <DataRow k="HOD" v={`${c.hodName ?? "—"} (${c.hodEntity ?? "—"})`} />
-          <DataRow k="Department" v={c.respondentDept ?? "—"} />
-        </div>
+        {canEdit ? (
+          <form action={updateCase} className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <input type="hidden" name="id" value={c.id} />
+            <Field label="Escalation Channel">
+              <select className="input" name="escalationChannel" defaultValue={c.escalationChannel}>
+                <option>Employee Escalations</option><option>Whistleblower Portal</option><option>Email</option><option>Helpline</option><option>Walk-in</option><option>Anonymous</option><option>Other</option>
+                {!["Employee Escalations","Whistleblower Portal","Email","Helpline","Walk-in","Anonymous","Other"].includes(c.escalationChannel) && <option>{c.escalationChannel}</option>}
+              </select>
+            </Field>
+            <Field label="Complaint Date"><input className="input" type="date" name="complaintDate" defaultValue={c.complaintDate.toISOString().slice(0, 10)} /></Field>
+            <Field label="Escalation Date"><input className="input" type="date" name="escalationDate" defaultValue={c.escalationDate ? c.escalationDate.toISOString().slice(0, 10) : ""} /></Field>
+            <Field label="Assign Date"><input className="input" type="date" name="assignDate" defaultValue={c.assignDate ? c.assignDate.toISOString().slice(0, 10) : ""} /></Field>
+            <Field label="Severity">
+              <select className="input" name="severity" defaultValue={c.severity}>
+                <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+              </select>
+            </Field>
+            <Field label="Responsibility">
+              <select className="input" name="assigneeId" defaultValue={c.assigneeId ?? ""}>
+                <option value="">— Unassigned —</option>
+                {investigators.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Case Subject Line" className="md:col-span-3"><input className="input" name="subjectLine" defaultValue={c.subjectLine} /></Field>
+            <Field label="Category">
+              <select className="input" name="categoryId" defaultValue={c.categoryId}>
+                {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Sub-Category">
+              <select className="input" name="subCategoryId" defaultValue={c.subCategoryId}>
+                {categories.flatMap((cat) => cat.subs.map((s) => <option key={s.id} value={s.id}>{cat.name} / {s.name}</option>))}
+              </select>
+            </Field>
+            <Field label="Sale / Not-Sale">
+              <select className="input" name="saleNonSale" defaultValue={c.saleNonSale ?? ""}>
+                <option value="">—</option><option>Sale</option><option>Not Sale</option>
+              </select>
+            </Field>
+            <Field label="Complainant Type">
+              <select className="input" name="complainantType" defaultValue={c.complainantType ?? ""}>
+                <option value="">—</option><option>Employee</option><option>External</option><option>Anonymous</option>
+              </select>
+            </Field>
+            <Field label="Complainant Name"><input className="input" name="complainantName" defaultValue={c.complainantName ?? ""} /></Field>
+            <Field label="Complainant E-Code"><input className="input" name="complainantECode" defaultValue={c.complainantECode ?? ""} /></Field>
+            <Field label="Complainant Entity"><input className="input" name="complainantEntity" defaultValue={c.complainantEntity ?? ""} /></Field>
+            <Field label="Complainant Grade"><input className="input" name="complainantGrade" defaultValue={c.complainantGrade ?? ""} /></Field>
+            <Field label="Respondent Name"><input className="input" name="respondentName" defaultValue={c.respondentName} /></Field>
+            <Field label="Respondent E-Code"><input className="input" name="respondentECode" defaultValue={c.respondentECode ?? ""} /></Field>
+            <Field label="Respondent Entity"><input className="input" name="respondentEntity" defaultValue={c.respondentEntity} /></Field>
+            <Field label="Respondent Grade"><input className="input" name="respondentGrade" defaultValue={c.respondentGrade ?? ""} /></Field>
+            <Field label="City"><input className="input" name="city" defaultValue={c.city ?? ""} /></Field>
+            <Field label="State"><input className="input" name="state" defaultValue={c.state ?? ""} /></Field>
+            <Field label="HRBP / SPOC"><input className="input" name="hrbpSpoc" defaultValue={c.hrbpSpoc ?? ""} /></Field>
+            <Field label="HOD of Respondent"><input className="input" name="hodName" defaultValue={c.hodName ?? ""} /></Field>
+            <Field label="HOD Entity"><input className="input" name="hodEntity" defaultValue={c.hodEntity ?? ""} /></Field>
+            <Field label="Department"><input className="input" name="respondentDept" defaultValue={c.respondentDept ?? ""} /></Field>
+            <div className="md:col-span-3 flex justify-end pt-2">
+              <SaveButton label="Save intake details" />
+            </div>
+          </form>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
+            <DataRow k="Escalation Channel" v={c.escalationChannel} />
+            <DataRow k="Complaint Date" v={formatDate(c.complaintDate)} />
+            <DataRow k="Escalation Date" v={formatDate(c.escalationDate)} />
+            <DataRow k="Assign Date" v={formatDate(c.assignDate)} />
+            <DataRow k="Month" v={c.month} />
+            <DataRow k="Responsibility" v={c.assignee?.name ?? "—"} />
+            <DataRow k="Category" v={`${c.category.name} / ${c.subCategory.name}`} />
+            <DataRow k="Sale / Not-Sale" v={c.saleNonSale ?? "—"} />
+            <DataRow k="Complainant" v={`${c.complainantName ?? "—"} (${c.complainantType ?? "—"})`} />
+            <DataRow k="Complainant Entity" v={c.complainantEntity ?? "—"} />
+            <DataRow k="Respondent" v={`${c.respondentName} (${c.respondentECode ?? "—"})`} />
+            <DataRow k="Respondent Entity" v={c.respondentEntity} />
+            <DataRow k="Respondent Grade" v={c.respondentGrade ?? "—"} />
+            <DataRow k="City / State" v={`${c.city ?? "—"}, ${c.state ?? "—"}`} />
+            <DataRow k="HRBP / SPOC" v={c.hrbpSpoc ?? "—"} />
+            <DataRow k="HOD" v={`${c.hodName ?? "—"} (${c.hodEntity ?? "—"})`} />
+            <DataRow k="Department" v={c.respondentDept ?? "—"} />
+          </div>
+        )}
       </section>
 
       {/* Investigation lifecycle form */}
