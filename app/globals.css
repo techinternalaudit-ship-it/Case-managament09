@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --sidebar-w: 17.5rem;
+}
+.dark { color-scheme: dark; }
+
+html, body { height: 100%; }
+body {
+  @apply bg-canvas dark:bg-[#0b0f1a] text-ink-800 dark:text-gray-200;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+::selection {
+  background: rgba(0,186,242,0.16);
+  color: #002970;
+}
+.dark ::selection {
+  background: rgba(0,186,242,0.25);
+  color: #a8e1ff;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-ink-300 dark:bg-white/15; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { @apply bg-ink-400 dark:bg-white/25; }
+
+/* ─── Buttons ─── */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ease-out;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0b0f1a];
+}
+.btn-primary {
+  @apply btn text-white shadow-sm;
+  background: linear-gradient(135deg, #00baf2 0%, #0080aa 100%);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #33bff8 0%, #009fd4 100%);
+  @apply shadow-md -translate-y-[1px];
+}
+.btn-primary:active { @apply translate-y-0 shadow-sm; }
+.btn-primary:disabled { @apply opacity-50 cursor-not-allowed translate-y-0 shadow-none; }
+
+.btn-secondary {
+  @apply btn bg-white dark:bg-white/[0.06] text-ink-700 dark:text-gray-300 border border-ink-200 dark:border-white/10 shadow-soft;
+}
+.btn-secondary:hover { @apply bg-ink-100 dark:bg-white/10 border-ink-300 dark:border-white/15 -translate-y-[1px] shadow-card; }
+.btn-secondary:active { @apply translate-y-0 shadow-soft; }
+
+.btn-ghost {
+  @apply btn text-ink-600 dark:text-gray-400 hover:bg-ink-100 dark:hover:bg-white/[0.06] hover:text-ink-900 dark:hover:text-white;
+}
+.btn-danger {
+  @apply btn text-white shadow-sm;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+.btn-danger:hover { @apply shadow-md -translate-y-[1px]; }
+
+/* ─── Inputs ─── */
+.input {
+  @apply block w-full rounded-xl border border-ink-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-sm shadow-soft outline-none transition-all duration-200;
+  @apply text-ink-900 dark:text-gray-200 placeholder:text-ink-400 dark:placeholder:text-gray-500;
+  @apply focus:border-primary-400 dark:focus:border-primary-500 focus:ring-[3px] focus:ring-primary-100 dark:focus:ring-primary-900/30 focus:shadow-glow;
+}
+.input:disabled {
+  @apply bg-ink-100/60 dark:bg-white/[0.03] text-ink-500 dark:text-gray-500 cursor-not-allowed;
+}
+select.input {
+  @apply pr-8 appearance-none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.label {
+  @apply block text-xs font-semibold text-ink-600 dark:text-gray-400 mb-1 tracking-wide uppercase;
+}
+.helper {
+  @apply text-xs text-ink-500 dark:text-gray-500 mt-1;
+}
+
+/* ─── Cards ─── */
+.card {
+  @apply rounded-2xl border border-ink-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] shadow-soft;
+  @apply transition-shadow duration-200;
+}
+.card-hover:hover {
+  @apply shadow-card;
+}
+
+/* ─── Badges ─── */
+.badge {
+  @apply inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-semibold tracking-wide;
+}
+
+/* ─── Table ─── */
+.table-row {
+  @apply border-b border-ink-100 dark:border-white/[0.04] last:border-0 transition-colors duration-150;
+}
+.table-row:hover {
+  @apply bg-primary-50/30 dark:bg-primary-900/10;
+}
+
+/* ─── Sidebar ─── */
+.nav-item {
+  @apply flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-ink-600 dark:text-gray-400 transition-all duration-200;
+}
+.nav-item:hover {
+  @apply bg-primary-50/80 dark:bg-white/[0.06] text-primary-800 dark:text-primary-300;
+}
+.nav-item-active {
+  @apply bg-primary-100/80 dark:bg-primary-900/20 text-primary-900 dark:text-primary-300 font-semibold shadow-soft;
+}
+
+/* ─── Page headers ─── */
+.page-title {
+  @apply text-2xl font-bold text-ink-900 dark:text-white tracking-tight;
+}
+.page-sub {
+  @apply text-sm text-ink-500 dark:text-gray-500 mt-1;
+}
+
+/* ─── KPI tiles ─── */
+.kpi {
+  @apply rounded-2xl p-5 bg-white dark:bg-white/[0.03] border border-ink-200/60 dark:border-white/[0.06] shadow-soft;
+  @apply transition-all duration-200 ease-out;
+}
+.kpi:hover {
+  @apply shadow-card -translate-y-[2px];
+}
+.kpi-label {
+  @apply text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-gray-500;
+}
+.kpi-value {
+  @apply text-3xl font-bold text-ink-900 dark:text-white mt-1.5 leading-none tabular-nums;
+}
+.kpi-hint {
+  @apply text-xs text-ink-400 dark:text-gray-500 mt-1.5;
+}
+
+/* ─── Empty states ─── */
+.empty {
+  @apply flex flex-col items-center justify-center text-center gap-3 py-16 text-ink-500 dark:text-gray-500;
+}
+
+/* ─── Section headings ─── */
+.section-title {
+  @apply text-sm font-semibold text-ink-800 dark:text-gray-200 flex items-center gap-2;
+}
+
+/* ─── Divider ─── */
+.divider {
+  @apply border-t border-ink-100 dark:border-white/[0.06] my-6;
+}
+
+/* ─── Animate page content ─── */
+.animate-page {
+  @apply animate-fade-in;
+}

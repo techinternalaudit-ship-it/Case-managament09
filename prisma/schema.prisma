@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  employeeCode  String?   @unique
+  entity        String?
+  grade         String?
+  department    String?
+  role          String    @default("VIEWER") // ADMIN | INVESTIGATOR | REVIEWER | HRBP | HOD | VIEWER
+  scopeEntity   String?
+  scopeDept     String?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  assignedCases Case[]    @relation("assignee")
+  createdCases  Case[]    @relation("creator")
+  attachments   CaseAttachment[]
+  auditLogs     AuditLog[]
+}
+
+model Case {
+  id                    String   @id @default(cuid())
+  caseNo                Int      @unique
+
+  // Intake (cols A-AA)
+  escalationChannel     String
+  complaintDate         DateTime
+  escalationDate        DateTime?
+  assignDate            DateTime?
+  month                 String
+  severity              String   // LOW | MEDIUM | HIGH | CRITICAL
+  assigneeId            String?
+  subjectLine           String
+  complainantType       String?
+  complainantName       String?
+  complainantECode      String?
+  complainantEntity     String?
+  complainantGrade      String?
+  respondentName        String
+  respondentECode       String?
+  respondentEntity      String
+  respondentGrade       String?
+  city                  String?
+  state                 String?
+  hrbpSpoc              String?
+  hodName               String?
+  hodEntity             String?
+  respondentDept        String?
+  saleNonSale           String?
+  categoryId            String
+  subCategoryId         String
+
+  // Investigation lifecycle (AB+)
+  reportLink            String?
+  investigationStatus   String   @default("OPEN") // OPEN | IN_PROGRESS | ON_HOLD | CLOSED | REPORT_SENT_TO_CBO
+  remarks1              String?
+  substantiated         Boolean?
+  reportStatus          String?
+  closureDate           DateTime?
+  processRecApproved    Boolean?
+  employeeRecApproved   Boolean?
+  employeeActionCount   Int      @default(0)
+  employeeAction        String?
+  employeeActionStatus  String?
+  employeeActionDate    DateTime?
+  processAction         String?
+  processActionStatus   String?
+  processActionDate     DateTime?
+
+  // Computed
+  tatDays               Int?
+  caseAge               Int?
+  tatBreach             Boolean  @default(false)
+  breachReason          String?
+  remarks2              String?
+
+  // Custom extension
+  extraFields           String?  // JSON blob
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdById           String
+
+  assignee              User?    @relation("assignee", fields: [assigneeId], references: [id])
+  creator               User     @relation("creator", fields: [createdById], references: [id])
+  category              LookupCategory     @relation(fields: [categoryId], references: [id])
+  subCategory           LookupSubCategory  @relation(fields: [subCategoryId], references: [id])
+  attachments           CaseAttachment[]
+  auditLogs             AuditLog[]
+
+  @@index([assigneeId])
+  @@index([investigationStatus])
+  @@index([severity])
+  @@index([categoryId])
+  @@index([tatBreach])
+}
+
+model CaseAttachment {
+  id           String   @id @default(cuid())
+  caseId       String
+  filename     String
+  storageKey   String
+  mimeType     String
+  size         Int
+  uploadedById String
+  uploadedAt   DateTime @default(now())
+  case         Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  caseId    String?
+  entity    String
+  entityId  String
+  action    String   // CREATE | UPDATE | DELETE | STATUS_CHANGE | FILE_UPLOAD | ASSIGN
+  diff      String   // JSON
+  userId    String
+  at        DateTime @default(now())
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([caseId])
+  @@index([entity, entityId])
+}
+
+model LookupCategory {
+  id    String              @id @default(cuid())
+  name  String              @unique
+  subs  LookupSubCategory[]
+  cases Case[]
+}
+
+model LookupSubCategory {
+  id         String          @id @default(cuid())
+  name       String
+  categoryId String
+  category   LookupCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cases      Case[]
+  @@unique([categoryId, name])
+}
+
+model AppSetting {
+  key   String @id
+  value String
+}
