@@ -49,10 +49,7 @@ export default async function CasesPage({
       <form className="card p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
         <div className="md:col-span-5">
           <label className="label">Search</label>
-          <div className="relative">
-            <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400 dark:text-gray-500" />
-            <input className="input pl-10" name="q" defaultValue={sp.q ?? ""} placeholder="Case number, respondent, subject…" />
-          </div>
+          <input className="input" name="q" defaultValue={sp.q ?? ""} placeholder="Case number, respondent, subject…" />
         </div>
         <div className="md:col-span-2">
           <label className="label">Severity</label>

@@ -75,6 +75,10 @@ const STATUS_MAP: Record<string, string> = {
   "closed": "CLOSED",
   "report sent to cbo": "REPORT_SENT_TO_CBO",
   "report_sent_to_cbo": "REPORT_SENT_TO_CBO",
+  "pending_l1_review": "PENDING_L1_REVIEW",
+  "pending l1 review": "PENDING_L1_REVIEW",
+  "pending_l2_review": "PENDING_L2_REVIEW",
+  "pending l2 review": "PENDING_L2_REVIEW",
 };
 
 const SEVERITY_MAP: Record<string, string> = {

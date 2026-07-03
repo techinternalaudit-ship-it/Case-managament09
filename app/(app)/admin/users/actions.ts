@@ -17,25 +17,29 @@ export async function createUser(formData: FormData) {
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const name = String(formData.get("name") ?? "");
   const password = String(formData.get("password") ?? "");
-  const role = String(formData.get("role") ?? "INVESTIGATOR");
+  const rolesArr = formData.getAll("roles").map(String).filter(Boolean);
+  const roles = rolesArr.join(",") || "INVESTIGATOR";
+  const role = rolesArr[0] || "INVESTIGATOR"; // primary role for backward compat
   const scopeEntity = String(formData.get("scopeEntity") ?? "") || null;
   const scopeDept = String(formData.get("scopeDept") ?? "") || null;
   if (!email || !name || !password) throw new Error("BAD_REQUEST");
   await db.user.create({
     data: {
-      email, name, role, scopeEntity, scopeDept,
+      email, name, role, roles, scopeEntity, scopeDept,
       passwordHash: bcrypt.hashSync(password, 10),
     },
   });
   revalidatePath("/admin/users");
 }
 
-export async function updateUserRole(formData: FormData) {
+export async function updateUserRoles(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  const role = String(formData.get("role") ?? "");
-  if (!id || !role) throw new Error("BAD_REQUEST");
-  await db.user.update({ where: { id }, data: { role } });
+  const rolesArr = formData.getAll("roles").map(String).filter(Boolean);
+  const roles = rolesArr.join(",") || "INVESTIGATOR";
+  const role = rolesArr[0] || "INVESTIGATOR";
+  if (!id) throw new Error("BAD_REQUEST");
+  await db.user.update({ where: { id }, data: { role, roles } });
   revalidatePath("/admin/users");
 }
 

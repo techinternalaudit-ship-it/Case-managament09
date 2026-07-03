@@ -18,7 +18,9 @@ async function doSignOut() {
 type NavItem = { href: string; label: string; icon: React.ComponentProps<typeof Icon>["name"] };
 type NavGroup = { group: string; items: NavItem[] };
 
-function buildNav(role: string): NavGroup[] {
+function buildNav(roles: string): NavGroup[] {
+  const roleSet = roles.split(",").map(r => r.trim());
+  const isReviewer = roleSet.includes("REVIEWER_L1") || roleSet.includes("REVIEWER_L2") || roleSet.includes("ADMIN");
   const nav: NavGroup[] = [
     {
       group: "Workspace",
@@ -26,6 +28,9 @@ function buildNav(role: string): NavGroup[] {
         { href: "/dashboard/overview", label: "Dashboard", icon: "home" },
         { href: "/cases", label: "Cases", icon: "list" },
         { href: "/cases/new", label: "New Case", icon: "plus" },
+        ...(isReviewer ? [{ href: "/reviews" as const, label: "Pending Reviews", icon: "check" as const }] : []),
+        { href: "/how-it-works", label: "How it Works", icon: "help" as const },
+        { href: "/admin/employees", label: "Employee Master", icon: "briefcase" },
       ],
     },
     {
@@ -33,11 +38,12 @@ function buildNav(role: string): NavGroup[] {
       items: [
         { href: "/dashboard/workload", label: "Team Workload", icon: "users" },
         { href: "/dashboard/compliance", label: "Compliance & SLA", icon: "clock" },
+        { href: "/dashboard/analytics", label: "Custom Analytics", icon: "chart" },
       ],
     },
   ];
 
-  if (role === "ADMIN") {
+  if (roleSet.includes("ADMIN")) {
     nav.push({
       group: "Administration",
       items: [
@@ -47,7 +53,7 @@ function buildNav(role: string): NavGroup[] {
         { href: "/admin/audit", label: "Audit Log", icon: "history" },
       ],
     });
-  } else if (role === "REVIEWER") {
+  } else if (roleSet.includes("REVIEWER_L1") || roleSet.includes("REVIEWER_L2")) {
     nav.push({
       group: "Administration",
       items: [
@@ -64,7 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session?.user) redirect("/sign-in");
   const u = session.user;
   const initials = u.name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
-  const nav = buildNav(u.role);
+  const nav = buildNav(u.roles || u.role);
   const scope = await getScope();
   const theme = await getTheme();
 
@@ -75,7 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="px-5 py-5 border-b border-ink-100/60 dark:border-white/[0.04]">
           <Link href="/dashboard/overview" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white grid place-items-center shadow-md group-hover:shadow-glow transition-shadow duration-300">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white grid place-items-center shadow-md group-hover:shadow-glow transition-shadow duration-300 overflow-hidden">
               <Icon name="shield" className="h-5 w-5" />
             </div>
             <div>
@@ -114,7 +120,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-ink-900 dark:text-white truncate">{u.name}</div>
-              <div className="text-[11px] text-ink-400 dark:text-gray-500 font-medium truncate">{ROLE_LABELS[u.role] ?? u.role}</div>
+              <div className="text-[11px] text-ink-400 dark:text-gray-500 font-medium truncate">{(u.roles || u.role || "").split(",").map(r => ROLE_LABELS[r.trim()] ?? r.trim()).filter(Boolean).join(" · ")}</div>
             </div>
           </div>
           <form action={doSignOut}>

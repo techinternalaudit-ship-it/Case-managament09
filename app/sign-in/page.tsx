@@ -17,6 +17,11 @@ async function doSignIn(formData: FormData) {
   redirect("/cases");
 }
 
+async function googleSignIn() {
+  "use server";
+  await signIn("google", { redirectTo: "/cases" });
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
@@ -27,13 +32,13 @@ export default async function SignInPage({
   const dbUsers = await db.user.findMany({
     where: { active: true },
     orderBy: { createdAt: "asc" },
-    select: { name: true, email: true, role: true },
+    select: { name: true, email: true, role: true, roles: true },
   });
 
   const users = dbUsers.map((u) => ({
     name: u.name,
     email: u.email,
-    role: ROLE_LABELS[u.role] ?? u.role,
+    role: (u.roles || u.role || "").split(",").map(r => ROLE_LABELS[r.trim()] ?? r.trim()).filter(Boolean).join(" · ") || u.role,
     initials: u.name
       .split(" ")
       .map((s) => s[0])
@@ -128,7 +133,7 @@ export default async function SignInPage({
             <p className="text-sm text-ink-400 mt-0.5">Select your profile to sign in.</p>
           </div>
 
-          <UserPicker error={!!sp?.error} doSignIn={doSignIn} users={users} />
+          <UserPicker error={!!sp?.error} doSignIn={doSignIn} googleSignIn={googleSignIn} users={users} />
 
           <p className="text-center text-[10px] text-ink-300 mt-8 font-medium tracking-widest uppercase lg:hidden">
             Internal use only · Paytm Vigilance

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/rbac";
-import { createUser, toggleUserActive, updateUserRole } from "./actions";
+import { createUser, toggleUserActive, updateUserRoles } from "./actions";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
 import { DeleteButton } from "./delete-button";
 import { Icon } from "@/components/icon";
@@ -33,10 +33,20 @@ export default async function UsersAdminPage() {
           <Field label="Name"><input className="input" name="name" required /></Field>
           <Field label="Email"><input className="input" name="email" type="email" required /></Field>
           <Field label="Password"><input className="input" name="password" type="password" required /></Field>
-          <Field label="Role">
-            <select className="input" name="role" defaultValue="INVESTIGATOR">
-              {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+          <Field label="Roles">
+            <div className="flex flex-wrap gap-3 py-2">
+              {[
+                ["ADMIN", "Admin"],
+                ["INVESTIGATOR", "Investigator"],
+                ["REVIEWER_L1", "Reviewer (L1)"],
+                ["REVIEWER_L2", "Reviewer (L2)"],
+              ].map(([value, label]) => (
+                <label key={value} className="inline-flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" name="roles" value={value} className="rounded border-ink-300" />
+                  {label}
+                </label>
+              ))}
+            </div>
           </Field>
           <Field label="Scope Entity"><input className="input" name="scopeEntity" placeholder="optional" /></Field>
           <Field label="Scope Dept"><input className="input" name="scopeDept" placeholder="optional" /></Field>
@@ -52,7 +62,7 @@ export default async function UsersAdminPage() {
               <tr className="bg-ink-100/50 dark:bg-white/[0.03] text-[11px] text-ink-500 dark:text-gray-500 uppercase tracking-wider">
                 <th className="px-4 py-3 text-left font-semibold">Name</th>
                 <th className="px-4 py-3 text-left font-semibold">Email</th>
-                <th className="px-4 py-3 text-left font-semibold">Role</th>
+                <th className="px-4 py-3 text-left font-semibold">Roles</th>
                 <th className="px-4 py-3 text-left font-semibold">Scope</th>
                 <th className="px-4 py-3 text-left font-semibold">Active</th>
                 <th className="px-4 py-3 text-left font-semibold">Created</th>
@@ -65,12 +75,22 @@ export default async function UsersAdminPage() {
                   <td className="px-4 py-3 font-medium text-ink-900 dark:text-white">{u.name}</td>
                   <td className="px-4 py-3 text-ink-600 dark:text-gray-400">{u.email}</td>
                   <td className="px-4 py-3">
-                    <form action={updateUserRole} className="flex items-center gap-2">
+                    <form action={updateUserRoles} className="space-y-1.5">
                       <input type="hidden" name="id" value={u.id} />
-                      <select name="role" defaultValue={u.role} className="input py-1.5 text-xs">
-                        {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                      </select>
-                      <button className="btn-secondary py-1.5 px-2.5 text-[11px]">Save</button>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          ["ADMIN", "Admin"],
+                          ["INVESTIGATOR", "Investigator"],
+                          ["REVIEWER_L1", "L1"],
+                          ["REVIEWER_L2", "L2"],
+                        ].map(([value, label]) => (
+                          <label key={value} className="inline-flex items-center gap-1 text-xs">
+                            <input type="checkbox" name="roles" value={value} defaultChecked={(u.roles || u.role || "").includes(value)} className="rounded border-ink-300 h-3.5 w-3.5" />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                      <button className="btn-secondary py-1 px-2 text-[10px]">Save</button>
                     </form>
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-400 dark:text-gray-500">{u.scopeEntity ?? "—"} / {u.scopeDept ?? "—"}</td>

@@ -16,15 +16,19 @@ model User {
   entity        String?
   grade         String?
   department    String?
-  role          String    @default("VIEWER") // ADMIN | INVESTIGATOR | REVIEWER | HRBP | HOD | VIEWER
+  role          String    @default("INVESTIGATOR") // ADMIN | INVESTIGATOR | REVIEWER_L1 | REVIEWER_L2
+  roles         String    @default("") // comma-separated: "ADMIN,REVIEWER_L1"
   scopeEntity   String?
   scopeDept     String?
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   assignedCases Case[]    @relation("assignee")
   createdCases  Case[]    @relation("creator")
+  l1ReviewCases Case[]    @relation("l1Reviewer")
+  l2ReviewCases Case[]    @relation("l2Reviewer")
   attachments   CaseAttachment[]
   auditLogs     AuditLog[]
+  employeeUploads EmployeeUploadLog[]
 }
 
 model Case {
@@ -61,7 +65,18 @@ model Case {
 
   // Investigation lifecycle (AB+)
   reportLink            String?
-  investigationStatus   String   @default("OPEN") // OPEN | IN_PROGRESS | ON_HOLD | CLOSED | REPORT_SENT_TO_CBO
+  investigationStatus   String   @default("OPEN") // OPEN | IN_PROGRESS | ON_HOLD | PENDING_L1_REVIEW | PENDING_L2_REVIEW | CLOSED | REPORT_SENT_TO_CBO
+
+  // Review workflow
+  l1ReviewerId          String?
+  l2ReviewerId          String?
+  investigatorSubmittedAt DateTime?
+  l1ReviewedAt          DateTime?
+  l1ReviewStatus        String?      // APPROVED | REJECTED
+  l1Comments            String?
+  l2ReviewedAt          DateTime?
+  l2ReviewStatus        String?      // APPROVED | REJECTED
+  l2Comments            String?
   remarks1              String?
   substantiated         Boolean?
   reportStatus          String?
@@ -92,6 +107,8 @@ model Case {
 
   assignee              User?    @relation("assignee", fields: [assigneeId], references: [id])
   creator               User     @relation("creator", fields: [createdById], references: [id])
+  l1Reviewer            User?    @relation("l1Reviewer", fields: [l1ReviewerId], references: [id])
+  l2Reviewer            User?    @relation("l2Reviewer", fields: [l2ReviewerId], references: [id])
   category              LookupCategory     @relation(fields: [categoryId], references: [id])
   subCategory           LookupSubCategory  @relation(fields: [subCategoryId], references: [id])
   attachments           CaseAttachment[]
@@ -147,6 +164,54 @@ model LookupSubCategory {
   category   LookupCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cases      Case[]
   @@unique([categoryId, name])
+}
+
+model Employee {
+  id              String   @id @default(cuid())
+  eCode           String   @unique
+  name            String
+  title           String?  // Mr./Ms.
+  gender          String?
+  email           String?
+  entity          String?
+  grade           String?
+  designation     String?
+  department      String?
+  subDepartment   String?
+  function        String?
+  bu              String?
+  sbu             String?
+  segment         String?
+  city            String?
+  state           String?
+  location        String?
+  employmentStatus String?
+  employmentType  String?
+  roleCategory    String?
+  role            String?
+  employeeType    String?
+  l1ManagerCode   String?
+  l1ManagerName   String?
+  l2ManagerCode   String?
+  l2ManagerName   String?
+  hrbpCode        String?
+  hrbpName        String?
+  hrSpocCode      String?
+  hrSpocName      String?
+  hodCode         String?
+  mobileNumber    String?
+
+  @@index([name])
+  @@index([entity])
+}
+
+model EmployeeUploadLog {
+  id          String   @id @default(cuid())
+  filename    String
+  rowCount    Int
+  uploadedById String
+  uploadedBy  User     @relation(fields: [uploadedById], references: [id])
+  uploadedAt  DateTime @default(now())
 }
 
 model AppSetting {

@@ -1,10 +1,10 @@
-const DEFAULT_SLA = Number(process.env.SLA_DAYS_DEFAULT ?? 30);
+const DEFAULT_SLA = Number(process.env.SLA_DAYS_DEFAULT ?? 40);
 
 const SLA_BY_SEVERITY: Record<string, number> = {
   LOW: DEFAULT_SLA,
   MEDIUM: DEFAULT_SLA,
-  HIGH: 21,
-  CRITICAL: 14,
+  HIGH: DEFAULT_SLA,
+  CRITICAL: DEFAULT_SLA,
 };
 
 export type TatInput = {

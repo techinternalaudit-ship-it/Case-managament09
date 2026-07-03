@@ -6,6 +6,14 @@ import { auth } from "@/lib/auth";
 import { can, caseVisibilityFilter, type SessionUser } from "@/lib/rbac";
 import { computeTAT } from "@/lib/tat";
 import { buildDiff, recordAudit } from "@/lib/audit";
+import {
+  notifyCaseAssigned,
+  notifySubmittedForL1,
+  notifyL1Approved,
+  notifyL1Rejected,
+  notifyL2Approved,
+  notifyL2Rejected,
+} from "@/lib/notifications";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { writeFile, mkdir } from "node:fs/promises";
@@ -55,11 +63,52 @@ function monthLabel(d: Date) {
   return d.toLocaleString("en-US", { month: "long" });
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  caseNo: "Case No.",
+  escalationChannel: "Escalation Channel",
+  complaintDate: "Complaint Date",
+  escalationDate: "Escalation Date",
+  assignDate: "Case Assign Date",
+  severity: "Severity",
+  assigneeId: "Investigator",
+  subjectLine: "Case Subject Line",
+  complainantType: "Type of Complainant",
+  complainantName: "Complainant Name",
+  complainantECode: "Complainant E-code",
+  complainantEntity: "Complainant Entity",
+  complainantGrade: "Complainant Grade",
+  respondentName: "Respondent Name",
+  respondentECode: "Respondent E-code",
+  respondentEntity: "Respondent Entity",
+  respondentGrade: "Respondent Grade",
+  city: "City",
+  state: "State",
+  hrbpSpoc: "HRBP / HR SPOC",
+  hodName: "HOD of Respondent",
+  hodEntity: "HOD Entity",
+  respondentDept: "Department of Respondent",
+  saleNonSale: "Sale / Not-Sale",
+  categoryId: "Category",
+  subCategoryId: "Sub-Category",
+};
+
 export async function createCase(formData: FormData) {
   const u = await user();
-  if (!can(u, "case:create")) throw new Error("FORBIDDEN");
+  if (!can(u, "case:create")) throw new Error("You don't have permission to create cases.");
 
-  const parsed = intakeSchema.parse(Object.fromEntries(formData));
+  // Verify the session user actually exists in the DB (handles stale JWT)
+  const dbUser = await db.user.findUnique({ where: { id: u.id } });
+  if (!dbUser) throw new Error("Your session is stale. Please sign out and sign back in.");
+
+  const result = intakeSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    const missing = result.error.issues
+      .map((issue) => FIELD_LABELS[issue.path[0] as string] || issue.path[0])
+      .filter(Boolean);
+    const unique = [...new Set(missing)];
+    throw new Error(`Please fill the required fields: ${unique.join(", ")}`);
+  }
+  const parsed = result.data;
   const complaint = toDate(parsed.complaintDate);
   if (!complaint) throw new Error("Invalid complaint date");
   const tat = computeTAT({ complaintDate: complaint, severity: parsed.severity });
@@ -109,6 +158,11 @@ export async function createCase(formData: FormData) {
     userId: u.id,
   });
 
+  // Notify assignee (fire-and-forget — never blocks case creation)
+  if (created.assigneeId) {
+    notifyCaseAssigned(created.id, created.assigneeId).catch(() => {});
+  }
+
   revalidatePath("/cases");
   redirect(`/cases/${created.id}`);
 }
@@ -116,7 +170,7 @@ export async function createCase(formData: FormData) {
 const updateSchema = intakeSchema.partial().extend({
   id: z.string().min(1),
   reportLink: z.string().optional().nullable(),
-  investigationStatus: z.enum(["OPEN", "IN_PROGRESS", "ON_HOLD", "CLOSED", "REPORT_SENT_TO_CBO"]).optional().nullable(),
+  investigationStatus: z.enum(["OPEN", "IN_PROGRESS", "ON_HOLD", "PENDING_L1_REVIEW", "PENDING_L2_REVIEW", "CLOSED", "REPORT_SENT_TO_CBO"]).optional().nullable(),
   remarks1: z.string().optional().nullable(),
   substantiated: z.preprocess((v) => (v === "" || v == null ? null : v === "true" || v === "on"), z.boolean().nullable()).optional(),
   reportStatus: z.string().optional().nullable(),
@@ -211,6 +265,12 @@ export async function assignCase(formData: FormData) {
     diff: { assigneeId: { before: existing.assigneeId, after: updated.assigneeId } },
     userId: u.id,
   });
+
+  // Notify new assignee
+  if (assigneeId) {
+    notifyCaseAssigned(id, assigneeId).catch(() => {});
+  }
+
   revalidatePath(`/cases/${id}`);
   revalidatePath("/cases");
   redirect(`/cases/${id}?assigned=1`);
@@ -258,6 +318,137 @@ export async function uploadAttachment(formData: FormData) {
 
   revalidatePath(`/cases/${id}`);
   redirect(`/cases/${id}?uploaded=1`);
+}
+
+export async function submitForReview(formData: FormData) {
+  const u = await user();
+  if (!can(u, "case:submit-for-review")) throw new Error("FORBIDDEN");
+  const id = String(formData.get("id") ?? "");
+  const existing = await db.case.findUnique({ where: { id } });
+  if (!existing) throw new Error("NOT_FOUND");
+
+  await db.case.update({
+    where: { id },
+    data: {
+      investigationStatus: "PENDING_L1_REVIEW",
+      investigatorSubmittedAt: new Date(),
+    },
+  });
+
+  await recordAudit({
+    entity: "Case",
+    entityId: id,
+    caseId: id,
+    action: "STATUS_CHANGE",
+    diff: {
+      investigationStatus: { before: existing.investigationStatus, after: "PENDING_L1_REVIEW" },
+      investigatorSubmittedAt: { before: null, after: new Date().toISOString() },
+    },
+    userId: u.id,
+  });
+
+  // Notify L1 reviewers
+  notifySubmittedForL1(id).catch(() => {});
+
+  revalidatePath(`/cases/${id}`);
+  revalidatePath("/cases");
+  redirect(`/cases/${id}?submitted=1`);
+}
+
+export async function reviewCase(formData: FormData) {
+  const u = await user();
+  const id = String(formData.get("id") ?? "");
+  const level = String(formData.get("level") ?? ""); // "L1" or "L2"
+  const status = String(formData.get("status") ?? ""); // "APPROVED" or "REJECTED"
+  const comments = String(formData.get("comments") ?? "");
+
+  if (!id || !level || !status) throw new Error("BAD_REQUEST");
+
+  const existing = await db.case.findUnique({ where: { id } });
+  if (!existing) throw new Error("NOT_FOUND");
+
+  if (level === "L1") {
+    if (!can(u, "case:review-l1")) throw new Error("FORBIDDEN");
+    const updateData: Record<string, unknown> = {
+      l1ReviewedAt: new Date(),
+      l1ReviewStatus: status,
+      l1Comments: comments || null,
+      l1ReviewerId: u.id,
+    };
+    if (status === "APPROVED") {
+      updateData.investigationStatus = "PENDING_L2_REVIEW";
+    } else {
+      // Rejected — send back to investigator
+      updateData.investigationStatus = "IN_PROGRESS";
+    }
+    await db.case.update({ where: { id }, data: updateData });
+
+    await recordAudit({
+      entity: "Case",
+      entityId: id,
+      caseId: id,
+      action: "L1_REVIEW",
+      diff: {
+        l1ReviewStatus: { before: existing.l1ReviewStatus, after: status },
+        l1Comments: { before: existing.l1Comments, after: comments || null },
+        investigationStatus: { before: existing.investigationStatus, after: status === "APPROVED" ? "PENDING_L2_REVIEW" : "IN_PROGRESS" },
+      },
+      userId: u.id,
+    });
+
+    // Notify based on L1 outcome
+    if (status === "APPROVED") {
+      notifyL1Approved(id).catch(() => {});
+    } else {
+      notifyL1Rejected(id).catch(() => {});
+    }
+  } else if (level === "L2") {
+    if (!can(u, "case:review-l2")) throw new Error("FORBIDDEN");
+    const updateData: Record<string, unknown> = {
+      l2ReviewedAt: new Date(),
+      l2ReviewStatus: status,
+      l2Comments: comments || null,
+      l2ReviewerId: u.id,
+    };
+    if (status === "APPROVED") {
+      updateData.investigationStatus = "CLOSED";
+      updateData.closureDate = new Date();
+      // Recompute TAT
+      const complaint = existing.complaintDate;
+      const tat = computeTAT({ complaintDate: complaint, closureDate: new Date(), severity: existing.severity });
+      updateData.tatDays = tat.tatDays;
+      updateData.caseAge = tat.caseAge;
+      updateData.tatBreach = tat.tatBreach;
+    } else {
+      // Rejected — send back to investigator
+      updateData.investigationStatus = "IN_PROGRESS";
+    }
+    await db.case.update({ where: { id }, data: updateData });
+
+    await recordAudit({
+      entity: "Case",
+      entityId: id,
+      caseId: id,
+      action: "L2_REVIEW",
+      diff: {
+        l2ReviewStatus: { before: existing.l2ReviewStatus, after: status },
+        l2Comments: { before: existing.l2Comments, after: comments || null },
+        investigationStatus: { before: existing.investigationStatus, after: status === "APPROVED" ? "CLOSED" : "IN_PROGRESS" },
+      },
+      userId: u.id,
+    });
+
+    // Notify based on L2 outcome
+    if (status === "APPROVED") {
+      notifyL2Approved(id).catch(() => {});
+    } else {
+      notifyL2Rejected(id).catch(() => {});
+    }
+  }
+
+  revalidatePath(`/cases/${id}`);
+  revalidatePath("/cases");
+  redirect(`/cases/${id}?reviewed=1`);
 }
 
 export async function listVisibleCases(scope: "mine" | "all" = "mine") {
