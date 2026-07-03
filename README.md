@@ -73,13 +73,3 @@ Wire into cron / scheduler when deploying.
 5. `/dashboard/workload` → see Raina's load.
 6. `npm run cron:tat` → re-runs TAT computation.
 
-## Demo users
-
-| Email | Password | Role |
-|---|---|---|
-| admin@vigilance.local | admin123 | Admin |
-| raina@vigilance.local | password | Investigator |
-| selena@vigilance.local | password | Investigator |
-| sakira@vigilance.local | password | Investigator |
-| reviewer@vigilance.local | password | Reviewer |
-| hrbp.ocl@vigilance.local | password | HRBP (OCL-scoped) |
