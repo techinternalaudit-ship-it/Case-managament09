@@ -19,25 +19,35 @@ export default async function ReviewQueuePage() {
     return <div className="card p-6 text-ink-500">You don&apos;t have reviewer access.</div>;
   }
 
-  // Fetch cases pending review
+  const isAdmin = userRoles.includes("ADMIN");
+
+  // Fetch cases pending review — admins see all, reviewers see cases assigned to them
   const [l1Cases, l2Cases] = await Promise.all([
     isL1
       ? db.case.findMany({
-          where: { investigationStatus: "PENDING_L1_REVIEW" },
+          where: {
+            investigationStatus: "PENDING_L1_REVIEW",
+            ...(isAdmin ? {} : { l1ReviewerId: u.id }),
+          },
           orderBy: { updatedAt: "desc" },
           include: {
             assignee: { select: { name: true } },
             category: { select: { name: true } },
+            l1Reviewer: { select: { name: true } },
           },
         })
       : Promise.resolve([]),
     isL2
       ? db.case.findMany({
-          where: { investigationStatus: "PENDING_L2_REVIEW" },
+          where: {
+            investigationStatus: "PENDING_L2_REVIEW",
+            ...(isAdmin ? {} : { l2ReviewerId: u.id }),
+          },
           orderBy: { updatedAt: "desc" },
           include: {
             assignee: { select: { name: true } },
             category: { select: { name: true } },
+            l2Reviewer: { select: { name: true } },
           },
         })
       : Promise.resolve([]),

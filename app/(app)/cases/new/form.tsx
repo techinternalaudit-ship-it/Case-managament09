@@ -2,8 +2,10 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import { EcodeLookup } from "@/components/ecode-lookup";
+import { RespondentTable } from "@/components/respondent-table";
 
 type Cat = { id: string; name: string; subs: { id: string; name: string }[] };
+type Respondent = { name: string; eCode: string; entity: string; grade: string };
 
 export function CaseIntakeForm({
   action,
@@ -18,9 +20,11 @@ export function CaseIntakeForm({
 }) {
   const [step, setStep] = useState(0);
   const [categoryId, setCategoryId] = useState("");
+  const [complainantType, setComplainantType] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const [extraRespondents, setExtraRespondents] = useState<Respondent[]>([]);
 
   const subOptions = useMemo(
     () => categories.find((c) => c.id === categoryId)?.subs ?? [],
@@ -65,6 +69,18 @@ export function CaseIntakeForm({
   };
 
   const stepLabels = ["Case Header", "What / Why", "Complainant", "Respondent", "Where", "Org Context"];
+
+  function goNext() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const missing = (requiredByStep[step] || []).filter(r => !String(fd.get(r.field) || "").trim());
+    if (missing.length > 0) {
+      setError(`Please fill: ${missing.map(m => m.label).join(", ")}`);
+      return;
+    }
+    setError(null);
+    setStep(s => s + 1);
+  }
 
   function goToReview() {
     if (!formRef.current) return;
@@ -200,31 +216,52 @@ export function CaseIntakeForm({
         <h2 className="section-title mb-3">Complainant (who reported)</h2>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Type of Complainant*">
-            <select className="input" name="complainantType" required defaultValue="">
-              <option value="" disabled>Select…</option><option>Employee</option><option>External</option><option>Anonymous</option>
+            <select className="input" name="complainantType" required defaultValue="" onChange={(e) => {
+              const val = e.target.value;
+              setComplainantType(val);
+            }}>
+              <option value="" disabled>Select…</option><option>Employee</option><option>Merchant</option><option>Customer</option><option>External</option><option>Anonymous</option>
             </select>
           </Field>
-          <Field label="E-code*">
-            <EcodeLookup
-              inputName="complainantECode"
-              required
-              placeholder="Type E-code to search…"
-              fieldMap={{
-                name: "complainantName",
-                entity: "complainantEntity",
-                grade: "complainantGrade",
-              }}
-            />
-          </Field>
-          <Field label="Name*"><input className="input" name="complainantName" required /></Field>
-          <Field label="Entity*"><input className="input" name="complainantEntity" required placeholder="OCL / PSPL / …" /></Field>
-          <Field label="Grade*"><input className="input" name="complainantGrade" required /></Field>
+          {complainantType === "Employee" && (
+            <Field label="E-code">
+              <EcodeLookup
+                inputName="complainantECode"
+                placeholder="Type E-code to search…"
+                fieldMap={{
+                  name: "complainantName",
+                  entity: "complainantEntity",
+                  grade: "complainantGrade",
+                  email: "complainantEmail",
+                  mobileNumber: "complainantMobile",
+                }}
+              />
+            </Field>
+          )}
+          <Field label="Name"><input className="input" name="complainantName" /></Field>
+          {complainantType === "Employee" && (
+            <>
+              <Field label="Entity"><input className="input" name="complainantEntity" placeholder="OCL / PSPL / …" /></Field>
+              <Field label="Grade"><input className="input" name="complainantGrade" /></Field>
+            </>
+          )}
+          <Field label="Mobile No."><input className="input" name="complainantMobile" type="tel" placeholder="Mobile number" /></Field>
+          <Field label="Email"><input className="input" name="complainantEmail" type="email" placeholder="Email address" /></Field>
+          {/* Hidden fields for non-employee types to ensure form data is present */}
+          {complainantType !== "Employee" && (
+            <>
+              <input type="hidden" name="complainantECode" value="" />
+              <input type="hidden" name="complainantEntity" value="" />
+              <input type="hidden" name="complainantGrade" value="" />
+            </>
+          )}
         </div>
       </div>
 
       <div className={step === 3 ? "" : "hidden"}>
-        <h2 className="section-title mb-3">Respondent (who is accused)</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <h2 className="section-title mb-3">Respondent(s) — who is accused</h2>
+        <p className="text-xs text-ink-400 mb-3">Primary respondent details (auto-fills from E-code lookup):</p>
+        <div className="grid grid-cols-2 gap-3 mb-4">
           <Field label="E-code*">
             <EcodeLookup
               inputName="respondentECode"
@@ -245,8 +282,15 @@ export function CaseIntakeForm({
           </Field>
           <Field label="Name*"><input className="input" name="respondentName" required /></Field>
           <Field label="Entity*"><input className="input" name="respondentEntity" required placeholder="OCL / PSPL / …" /></Field>
-          <Field label="Grade*"><input className="input" name="respondentGrade" required /></Field>
+          <Field label="Grade"><input className="input" name="respondentGrade" /></Field>
         </div>
+
+        {/* Additional respondents with E-code lookup */}
+        <div className="mt-2">
+          <p className="text-xs text-ink-400 mb-2 font-semibold">Additional Respondent(s):</p>
+          <RespondentTable respondents={extraRespondents} onChange={setExtraRespondents} />
+        </div>
+        <input type="hidden" name="respondents" value={JSON.stringify(extraRespondents)} />
       </div>
 
       <div className={step === 4 ? "" : "hidden"}>
@@ -298,14 +342,24 @@ export function CaseIntakeForm({
             <ReviewRow label="Name" value={reviewData.complainantName} />
             <ReviewRow label="Entity" value={reviewData.complainantEntity} />
             <ReviewRow label="Grade" value={reviewData.complainantGrade} />
+            <ReviewRow label="Mobile No." value={reviewData.complainantMobile} />
+            <ReviewRow label="Email" value={reviewData.complainantEmail} />
           </ReviewSection>
 
-          {/* Respondent */}
-          <ReviewSection title="Respondent" onEdit={() => setStep(3)}>
-            <ReviewRow label="E-code" value={reviewData.respondentECode} />
-            <ReviewRow label="Name" value={reviewData.respondentName} />
-            <ReviewRow label="Entity" value={reviewData.respondentEntity} />
-            <ReviewRow label="Grade" value={reviewData.respondentGrade} />
+          {/* Respondent(s) */}
+          <ReviewSection title="Respondent(s)" onEdit={() => setStep(3)}>
+            <ReviewRow label="Primary E-code" value={reviewData.respondentECode} />
+            <ReviewRow label="Primary Name" value={reviewData.respondentName} />
+            <ReviewRow label="Primary Entity" value={reviewData.respondentEntity} />
+            <ReviewRow label="Primary Grade" value={reviewData.respondentGrade} />
+            {extraRespondents.map((r, i) => (
+              <div key={i} className="border-t border-ink-100/40 dark:border-white/[0.04] pt-1 mt-1">
+                <ReviewRow label={`Respondent ${i + 2} Name`} value={r.name} />
+                <ReviewRow label={`Respondent ${i + 2} E-code`} value={r.eCode} />
+                <ReviewRow label={`Respondent ${i + 2} Entity`} value={r.entity} />
+                <ReviewRow label={`Respondent ${i + 2} Grade`} value={r.grade} />
+              </div>
+            ))}
           </ReviewSection>
 
           {/* Where */}
@@ -341,7 +395,7 @@ export function CaseIntakeForm({
         </button>
         <div className="flex gap-2">
           {step < 5 ? (
-            <button type="button" className="btn-primary" onClick={() => setStep((s) => s + 1)}>Next &rarr;</button>
+            <button type="button" className="btn-primary" onClick={goNext}>Next &rarr;</button>
           ) : step === 5 ? (
             <button type="button" className="btn-primary" onClick={goToReview}>Review &rarr;</button>
           ) : (

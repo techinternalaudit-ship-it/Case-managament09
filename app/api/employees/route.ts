@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
     select: {
       eCode: true,
       name: true,
+      email: true,
+      mobileNumber: true,
       entity: true,
       grade: true,
       designation: true,

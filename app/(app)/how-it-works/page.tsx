@@ -5,7 +5,7 @@ const steps = [
   {
     number: "01",
     title: "Case Intake",
-    description: "A new case is registered when a complaint comes in — via email, whistleblower portal, helpline, or walk-in. The admin logs it with all details: complainant, respondent, severity, category, and assigns it to an investigator.",
+    description: "A new case is registered when a complaint comes in — via email, whistleblower portal, helpline, or walk-in. The admin logs it with all details: complainant, respondent, severity, category, and assigns it to an investigator. Type an E-code and the system auto-suggests matching employees from the Employee Master — click to fill name, entity, grade, department, HRBP, HOD, city, and state instantly. A Review step lets you verify all details before submission.",
     link: "/cases/new",
     linkLabel: "Create a new case",
     icon: "plus" as const,
@@ -70,6 +70,12 @@ const features = [
     description: "Separate queues for L1 and L2 reviewers showing cases awaiting their action, with wait-time indicators.",
     href: "/reviews",
     icon: "check" as const,
+  },
+  {
+    title: "Employee Master",
+    description: "Upload the employee master Excel file to enable E-code lookup. When creating or editing a case, type an E-code and the system auto-suggests matching employees — click to fill name, entity, grade, department, HRBP, HOD, city, and state automatically.",
+    href: "/admin/employees",
+    icon: "users" as const,
   },
   {
     title: "Team Workload",
@@ -225,18 +231,22 @@ export default function HowItWorksPage() {
         <ol className="space-y-2 text-sm text-ink-600 dark:text-gray-400">
           <li className="flex items-start gap-2">
             <span className="h-5 w-5 rounded-full bg-primary-600 text-white text-[10px] font-bold grid place-items-center shrink-0">1</span>
-            <span>Go to <Link href="/cases/new" className="font-semibold text-primary-600 hover:text-primary-500">New Case</Link> and fill in the intake form.</span>
+            <span>Upload the Employee Master Excel in <Link href="/admin/employees" className="font-semibold text-primary-600 hover:text-primary-500">Employee Master</Link> — this enables E-code lookup for auto-filling case details.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="h-5 w-5 rounded-full bg-primary-600 text-white text-[10px] font-bold grid place-items-center shrink-0">2</span>
-            <span>Update investigation status and findings as the case progresses.</span>
+            <span>Go to <Link href="/cases/new" className="font-semibold text-primary-600 hover:text-primary-500">New Case</Link> and fill in the intake form. Use E-code lookup to auto-fill respondent/complainant details. Review everything before submitting.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="h-5 w-5 rounded-full bg-primary-600 text-white text-[10px] font-bold grid place-items-center shrink-0">3</span>
-            <span>Submit for review when fieldwork is done — L1 → L2 → Closed.</span>
+            <span>Update investigation status and findings as the case progresses.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="h-5 w-5 rounded-full bg-primary-600 text-white text-[10px] font-bold grid place-items-center shrink-0">4</span>
+            <span>Submit for review when fieldwork is done — L1 → L2 → Closed.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="h-5 w-5 rounded-full bg-primary-600 text-white text-[10px] font-bold grid place-items-center shrink-0">5</span>
             <span>Track team performance on <Link href="/dashboard/workload" className="font-semibold text-primary-600 hover:text-primary-500">Team Workload</Link> and SLA compliance on <Link href="/dashboard/compliance" className="font-semibold text-primary-600 hover:text-primary-500">Compliance & SLA</Link>.</span>
           </li>
         </ol>

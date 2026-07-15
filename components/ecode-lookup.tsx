@@ -5,6 +5,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 type Employee = {
   eCode: string;
   name: string;
+  email: string | null;
+  mobileNumber: string | null;
   entity: string | null;
   grade: string | null;
   designation: string | null;

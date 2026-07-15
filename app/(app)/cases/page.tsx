@@ -6,30 +6,79 @@ import { severityColor, statusColor, STATUS_LABELS, SEVERITY_LABELS } from "@/li
 import { Icon } from "@/components/icon";
 import { getScope } from "@/lib/scope";
 
+/* ── Sortable column header ──────────────────────────────────────────── */
+
+function SortHeader({
+  label,
+  field,
+  currentSort,
+  params,
+}: {
+  label: string;
+  field: string;
+  currentSort?: string;
+  params: URLSearchParams;
+}) {
+  const [curField, curDir] = (currentSort ?? "").split(":");
+  const active = curField === field;
+  const nextDir = active && curDir === "asc" ? "desc" : "asc";
+
+  const sp = new URLSearchParams(params);
+  sp.set("sort", `${field}:${nextDir}`);
+  sp.delete("page"); // reset to page 1 on sort change
+
+  return (
+    <th className="px-4 py-3 text-left font-semibold">
+      <Link
+        href={`/cases?${sp.toString()}`}
+        className="inline-flex items-center gap-1 hover:text-ink-900 dark:hover:text-white transition-colors"
+      >
+        {label}
+        <span className="text-[10px] leading-none">
+          {active ? (curDir === "asc" ? "▲" : "▼") : "⇅"}
+        </span>
+      </Link>
+    </th>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────── */
+
 export default async function CasesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; sev?: string; status?: string; breach?: string }>;
+  searchParams: Promise<{ q?: string; sev?: string; status?: string; breach?: string; page?: string; sort?: string }>;
 }) {
   const sp = await searchParams;
   const scope = await getScope();
-  const all = await listVisibleCases(scope);
-  const filtered = all.filter((c) => {
-    if (sp.q) {
-      const q = sp.q.toLowerCase();
-      const hay = `${c.caseNo} ${c.respondentName} ${c.subjectLine} ${c.respondentECode ?? ""}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (sp.sev && c.severity !== sp.sev) return false;
-    if (sp.status && c.investigationStatus !== sp.status) return false;
-    if (sp.breach === "1" && !c.tatBreach) return false;
-    return true;
+  const pageNum = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+
+  const { cases, total, page, totalPages } = await listVisibleCases(scope, {
+    page: pageNum,
+    q: sp.q,
+    sev: sp.sev,
+    status: sp.status,
+    breach: sp.breach,
+    sort: sp.sort,
   });
 
   const title = scope === "all" ? "All Cases" : "My Cases";
-  const subtitle = scope === "all"
-    ? `Showing ${filtered.length} of ${all.length} cases across the organization.`
-    : `Showing ${filtered.length} of ${all.length} cases assigned to you.`;
+
+  // Build URLSearchParams preserving current filters for pagination/sort links
+  const baseParams = new URLSearchParams();
+  if (sp.q) baseParams.set("q", sp.q);
+  if (sp.sev) baseParams.set("sev", sp.sev);
+  if (sp.status) baseParams.set("status", sp.status);
+  if (sp.breach) baseParams.set("breach", sp.breach);
+  if (sp.sort) baseParams.set("sort", sp.sort);
+
+  function pageHref(p: number) {
+    const ps = new URLSearchParams(baseParams);
+    if (p > 1) ps.set("page", String(p));
+    else ps.delete("page");
+    const qs = ps.toString();
+    return `/cases${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <div className="space-y-5">
@@ -37,7 +86,7 @@ export default async function CasesPage({
         <div>
           <h1 className="page-title">{title}</h1>
           <p className="page-sub">
-            Showing <span className="font-semibold text-ink-800 dark:text-white">{filtered.length}</span> of {all.length} cases{scope === "all" ? " across the organization" : " assigned to you"}.
+            Showing <span className="font-semibold text-ink-800 dark:text-white">{cases.length}</span> of {total} cases{scope === "all" ? " across the organization" : " assigned to you"}.
           </p>
         </div>
         <Link href="/cases/new" className="btn-primary">
@@ -70,6 +119,7 @@ export default async function CasesPage({
             <input type="checkbox" name="breach" value="1" defaultChecked={sp.breach === "1"} className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500" />
             SLA breach
           </label>
+          {sp.sort && <input type="hidden" name="sort" value={sp.sort} />}
           <button className="btn-secondary text-xs">Apply</button>
         </div>
       </form>
@@ -80,17 +130,18 @@ export default async function CasesPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-ink-100/50 dark:bg-white/[0.03] text-[11px] text-ink-500 dark:text-gray-500 uppercase tracking-wider">
-                <th className="px-4 py-3 text-left font-semibold">Case No.</th>
+                <SortHeader label="Case No." field="caseNo" currentSort={sp.sort} params={baseParams} />
                 <th className="px-4 py-3 text-left font-semibold">Subject</th>
                 <th className="px-4 py-3 text-left font-semibold">Respondent</th>
-                <th className="px-4 py-3 text-left font-semibold">Severity</th>
-                <th className="px-4 py-3 text-left font-semibold">Status</th>
+                <SortHeader label="Complaint Date" field="complaintDate" currentSort={sp.sort} params={baseParams} />
+                <SortHeader label="Severity" field="severity" currentSort={sp.sort} params={baseParams} />
+                <SortHeader label="Status" field="investigationStatus" currentSort={sp.sort} params={baseParams} />
                 <th className="px-4 py-3 text-left font-semibold">Assignee</th>
                 <th className="px-4 py-3 text-left font-semibold">SLA</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c) => (
+              {cases.map((c) => (
                 <tr key={c.id} className="table-row">
                   <td className="px-4 py-3.5">
                     <Link className="font-semibold text-primary-700 dark:text-primary-400 hover:text-primary-500 transition-colors text-sm" href={`/cases/${c.id}`}>#{c.caseNo}</Link>
@@ -102,6 +153,9 @@ export default async function CasesPage({
                   <td className="px-4 py-3.5">
                     <div className="font-medium text-ink-900 dark:text-gray-200 text-sm">{c.respondentName}</div>
                     <div className="text-[11px] text-ink-400 dark:text-gray-500">{c.respondentEntity}</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-ink-600 dark:text-gray-400 text-xs whitespace-nowrap">
+                    {c.complaintDate ? new Date(c.complaintDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                   </td>
                   <td className="px-4 py-3.5"><span className={`badge ${severityColor(c.severity)}`}>{SEVERITY_LABELS[c.severity] ?? c.severity}</span></td>
                   <td className="px-4 py-3.5"><span className={`badge ${statusColor(c.investigationStatus)}`}>{STATUS_LABELS[c.investigationStatus] ?? c.investigationStatus}</span></td>
@@ -125,9 +179,9 @@ export default async function CasesPage({
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {cases.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="empty">
                       <div className="h-14 w-14 rounded-2xl bg-primary-50 dark:bg-primary-900/20 text-primary-500 grid place-items-center">
                         <Icon name="search" className="h-6 w-6" />
@@ -144,6 +198,37 @@ export default async function CasesPage({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-ink-200/60 dark:border-white/[0.06] px-4 py-3">
+            <div>
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} className="btn-secondary text-xs">
+                  &larr; Previous
+                </Link>
+              ) : (
+                <span className="btn-secondary text-xs opacity-40 pointer-events-none">
+                  &larr; Previous
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-ink-500 dark:text-gray-500">
+              Page {page} of {totalPages}
+            </span>
+            <div>
+              {page < totalPages ? (
+                <Link href={pageHref(page + 1)} className="btn-secondary text-xs">
+                  Next &rarr;
+                </Link>
+              ) : (
+                <span className="btn-secondary text-xs opacity-40 pointer-events-none">
+                  Next &rarr;
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -17,10 +17,11 @@ const CITIES: Array<[string, string]> = [
 const DEPARTMENTS = ["Sales", "Operations", "Finance", "Technology", "HR", "Customer Support", "Risk"];
 const CHANNELS = ["Employee Escalations", "Whistleblower Portal", "Email", "Helpline", "Walk-in", "Anonymous"];
 const STATUSES: Array<{ key: string; closed?: boolean }> = [
-  { key: "OPEN" },
-  { key: "IN_PROGRESS" },
-  { key: "ON_HOLD" },
-  { key: "REPORT_SENT_TO_CBO", closed: true },
+  { key: "INVESTIGATION_NOT_STARTED" },
+  { key: "INVESTIGATION_IN_PROGRESS" },
+  { key: "DRAFT_REVIEW" },
+  { key: "CLOSED_WITH_MHD", closed: true },
+  { key: "CLOSED_WITH_HR_SPOC", closed: true },
   { key: "CLOSED", closed: true },
 ];
 

@@ -28,13 +28,13 @@ export default async function WorkloadDashboard() {
   const rows = investigators.map((inv) => {
     const mine = cases.filter((c) => c.assigneeId === inv.id);
     const total = mine.length;
-    const inProgress = mine.filter((c) => c.investigationStatus === "IN_PROGRESS").length;
+    const inProgress = mine.filter((c) => c.investigationStatus === "INVESTIGATION_IN_PROGRESS").length;
     const sentL1 = mine.filter((c) => c.investigationStatus === "PENDING_L1_REVIEW").length;
     const sentL2 = mine.filter((c) => c.investigationStatus === "PENDING_L2_REVIEW").length;
-    const closed = mine.filter((c) => c.investigationStatus === "CLOSED" || c.investigationStatus === "REPORT_SENT_TO_CBO").length;
+    const closed = mine.filter((c) => c.investigationStatus === "CLOSED" || c.investigationStatus === "CLOSED_WITH_MHD" || c.investigationStatus === "CLOSED_WITH_HR_SPOC").length;
     const breached = mine.filter((c) => c.tatBreach).length;
 
-    const openMine = mine.filter((c) => c.investigationStatus !== "CLOSED" && c.investigationStatus !== "REPORT_SENT_TO_CBO");
+    const openMine = mine.filter((c) => c.investigationStatus !== "CLOSED" && c.investigationStatus !== "CLOSED_WITH_MHD" && c.investigationStatus !== "CLOSED_WITH_HR_SPOC");
     const sev = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
     for (const c of openMine) {
       if (c.severity in sev) sev[c.severity as keyof typeof sev]++;

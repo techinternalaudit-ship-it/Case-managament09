@@ -3,12 +3,13 @@ export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { can } from "@/lib/rbac";
 import { EmployeeUploader } from "./uploader";
 
 export default async function EmployeeMasterPage() {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
-  // Accessible to all logged-in users
+  if (!can(session.user, "user:manage")) return <div className="card p-6">Forbidden.</div>;
 
   const employeeCount = await db.employee.count();
   const lastUpload = await db.employeeUploadLog.findFirst({ orderBy: { uploadedAt: "desc" } });

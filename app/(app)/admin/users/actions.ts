@@ -52,6 +52,40 @@ export async function toggleUserActive(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+export async function resolvePasswordReset(formData: FormData) {
+  const admin = await requireAdmin();
+  const requestId = String(formData.get("requestId") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  if (!requestId || !newPassword) throw new Error("BAD_REQUEST");
+
+  const req = await db.passwordResetRequest.findUnique({ where: { id: requestId } });
+  if (!req || req.status !== "PENDING") throw new Error("NOT_FOUND");
+
+  await db.$transaction([
+    db.user.update({
+      where: { id: req.userId },
+      data: { passwordHash: bcrypt.hashSync(newPassword, 10) },
+    }),
+    db.passwordResetRequest.update({
+      where: { id: requestId },
+      data: { status: "RESOLVED", resolvedAt: new Date(), resolvedById: admin.id },
+    }),
+  ]);
+  revalidatePath("/admin/users");
+}
+
+export async function dismissPasswordReset(formData: FormData) {
+  const admin = await requireAdmin();
+  const requestId = String(formData.get("requestId") ?? "");
+  if (!requestId) throw new Error("BAD_REQUEST");
+
+  await db.passwordResetRequest.update({
+    where: { id: requestId },
+    data: { status: "DISMISSED", resolvedAt: new Date(), resolvedById: admin.id },
+  });
+  revalidatePath("/admin/users");
+}
+
 export async function deleteUser(formData: FormData) {
   const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");

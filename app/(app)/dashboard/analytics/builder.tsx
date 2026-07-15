@@ -76,13 +76,15 @@ const COLORS = [
 
 const SEVERITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUS_OPTIONS = [
-  "OPEN",
-  "IN_PROGRESS",
-  "ON_HOLD",
+  "INVESTIGATION_NOT_STARTED",
+  "INCOMPLETE_DETAILS",
+  "INVESTIGATION_IN_PROGRESS",
+  "DRAFT_REVIEW",
+  "CLOSED_WITH_MHD",
+  "CLOSED_WITH_HR_SPOC",
   "PENDING_L1_REVIEW",
   "PENDING_L2_REVIEW",
   "CLOSED",
-  "REPORT_SENT_TO_CBO",
 ];
 
 /* ---------- shared chart styles (matches overview/charts.tsx) ---------- */

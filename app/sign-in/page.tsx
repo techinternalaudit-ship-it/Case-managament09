@@ -3,16 +3,17 @@ import { redirect } from "next/navigation";
 import { Icon } from "@/components/icon";
 import { UserPicker } from "./user-picker";
 import { db } from "@/lib/db";
-import { ROLE_LABELS } from "@/lib/utils";
 
-async function doSignIn(formData: FormData) {
+async function doSignIn(formData: FormData): Promise<{ error: boolean }> {
   "use server";
-  const email = String(formData.get("email") ?? "");
+  const userId = String(formData.get("userId") ?? "");
   const password = String(formData.get("password") ?? "");
+  const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { email: true } }) : null;
+  if (!user) return { error: true };
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { email: user.email, password, redirect: false });
   } catch {
-    redirect("/sign-in?error=1");
+    return { error: true };
   }
   redirect("/cases");
 }
@@ -28,24 +29,11 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const sp = await searchParams;
-
-  const dbUsers = await db.user.findMany({
+  const users = await db.user.findMany({
     where: { active: true },
-    orderBy: { createdAt: "asc" },
-    select: { name: true, email: true, role: true, roles: true },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
   });
-
-  const users = dbUsers.map((u) => ({
-    name: u.name,
-    email: u.email,
-    role: (u.roles || u.role || "").split(",").map(r => ROLE_LABELS[r.trim()] ?? r.trim()).filter(Boolean).join(" · ") || u.role,
-    initials: u.name
-      .split(" ")
-      .map((s) => s[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase(),
-  }));
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
@@ -125,15 +113,15 @@ export default async function SignInPage({
 
           <div className="mb-8 hidden lg:block">
             <h1 className="text-2xl font-bold text-ink-900 tracking-tight">Welcome back</h1>
-            <p className="text-sm text-ink-400 mt-1">Select your profile to sign in.</p>
+            <p className="text-sm text-ink-400 mt-1">Choose your account to continue.</p>
           </div>
 
           <div className="lg:hidden text-center mb-6">
             <h1 className="text-lg font-bold text-ink-900">Welcome back</h1>
-            <p className="text-sm text-ink-400 mt-0.5">Select your profile to sign in.</p>
+            <p className="text-sm text-ink-400 mt-0.5">Choose your account to continue.</p>
           </div>
 
-          <UserPicker error={!!sp?.error} doSignIn={doSignIn} googleSignIn={googleSignIn} users={users} />
+          <UserPicker users={users} initialError={!!sp?.error} doSignIn={doSignIn} googleSignIn={googleSignIn} />
 
           <p className="text-center text-[10px] text-ink-300 mt-8 font-medium tracking-widest uppercase lg:hidden">
             Internal use only · Paytm Vigilance

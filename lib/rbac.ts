@@ -53,13 +53,26 @@ export function can(user: SessionUser | null | undefined, action: Action): boole
   return MATRIX[action]?.some(r => userRoles.includes(r)) ?? false;
 }
 
-/** Returns Prisma `where` filter scoped to cases the user is allowed to see in their personal Cases view. */
+/** Returns Prisma `where` filter scoped to cases the user is allowed to see based on their role. */
 export function caseVisibilityFilter(user: SessionUser) {
   const userRoles = (user.roles || user.role || "").split(",").map(r => r.trim()).filter(Boolean);
-  if (userRoles.includes("ADMIN")) return { assigneeId: user.id };
+  // Admins can see all cases
+  if (userRoles.includes("ADMIN")) return {};
+  // Reviewers can see all cases (they need visibility for review workflows)
   if (userRoles.includes("REVIEWER_L1") || userRoles.includes("REVIEWER_L2")) return {};
+  // Investigators can only see cases assigned to them
   if (userRoles.includes("INVESTIGATOR")) return { assigneeId: user.id };
+  // Default: only own cases
   return { assigneeId: user.id };
+}
+
+/** Check whether a user can view a specific case, based on role-based visibility rules. */
+export function canViewCase(user: SessionUser, caseRecord: { assigneeId?: string | null }): boolean {
+  const userRoles = (user.roles || user.role || "").split(",").map(r => r.trim()).filter(Boolean);
+  if (userRoles.includes("ADMIN")) return true;
+  if (userRoles.includes("REVIEWER_L1") || userRoles.includes("REVIEWER_L2")) return true;
+  if (userRoles.includes("INVESTIGATOR")) return caseRecord.assigneeId === user.id;
+  return caseRecord.assigneeId === user.id;
 }
 
 /** Returns an empty filter — shows all cases. Used in admin-only views. */

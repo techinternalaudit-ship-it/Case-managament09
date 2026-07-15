@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { EcodeLookup } from "@/components/ecode-lookup";
 import { SaveButton } from "@/components/save-button";
+import { RespondentTable } from "@/components/respondent-table";
+
+type Respondent = { name: string; eCode: string; entity: string; grade: string };
 
 type CaseData = {
   id: string;
@@ -20,10 +24,13 @@ type CaseData = {
   complainantECode: string;
   complainantEntity: string;
   complainantGrade: string;
+  complainantMobile: string;
+  complainantEmail: string;
   respondentName: string;
   respondentECode: string;
   respondentEntity: string;
   respondentGrade: string;
+  respondents: string;
   city: string;
   state: string;
   hrbpSpoc: string;
@@ -33,6 +40,16 @@ type CaseData = {
 };
 
 type Cat = { id: string; name: string; subs: { id: string; name: string }[] };
+
+function parseRespondents(json: string): Respondent[] {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
 
 export function IntakeEditForm({
   c,
@@ -45,9 +62,15 @@ export function IntakeEditForm({
   categories: Cat[];
   investigators: { id: string; name: string }[];
 }) {
+  const [extraRespondents, setExtraRespondents] = useState<Respondent[]>(() => parseRespondents(c.respondents));
+  const [selectedCategoryId, setSelectedCategoryId] = useState(c.categoryId);
+
+  const filteredSubs = categories.find((cat) => cat.id === selectedCategoryId)?.subs ?? [];
+
   return (
-    <form action={action} onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
+    <form action={action} className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
       <input type="hidden" name="id" value={c.id} />
+      <input type="hidden" name="respondents" value={JSON.stringify(extraRespondents)} />
       <Field label="Escalation Channel">
         <select className="input" name="escalationChannel" defaultValue={c.escalationChannel}>
           <option>Employee Escalations</option><option>Whistleblower Portal</option><option>Email</option><option>Helpline</option><option>Walk-in</option><option>Anonymous</option><option>Other</option>
@@ -69,13 +92,13 @@ export function IntakeEditForm({
       </Field>
       <Field label="Case Subject Line" className="md:col-span-3"><input className="input" name="subjectLine" defaultValue={c.subjectLine} /></Field>
       <Field label="Category">
-        <select className="input" name="categoryId" defaultValue={c.categoryId}>
+        <select className="input" name="categoryId" defaultValue={c.categoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
           {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
         </select>
       </Field>
       <Field label="Sub-Category">
-        <select className="input" name="subCategoryId" defaultValue={c.subCategoryId}>
-          {categories.flatMap((cat) => cat.subs.map((s) => <option key={s.id} value={s.id}>{cat.name} / {s.name}</option>))}
+        <select className="input" name="subCategoryId" defaultValue={c.subCategoryId} key={selectedCategoryId}>
+          {filteredSubs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </Field>
       <Field label="Sale / Not-Sale">
@@ -85,7 +108,7 @@ export function IntakeEditForm({
       </Field>
       <Field label="Complainant Type">
         <select className="input" name="complainantType" defaultValue={c.complainantType}>
-          <option value="">—</option><option>Employee</option><option>External</option><option>Anonymous</option>
+          <option value="">—</option><option>Employee</option><option>Merchant</option><option>Customer</option><option>External</option><option>Anonymous</option>
         </select>
       </Field>
       <Field label="Complainant Name"><input className="input" name="complainantName" defaultValue={c.complainantName} /></Field>
@@ -97,12 +120,21 @@ export function IntakeEditForm({
             name: "complainantName",
             entity: "complainantEntity",
             grade: "complainantGrade",
+            email: "complainantEmail",
+            mobileNumber: "complainantMobile",
           }}
           defaultValue={c.complainantECode}
         />
       </Field>
       <Field label="Complainant Entity"><input className="input" name="complainantEntity" defaultValue={c.complainantEntity} /></Field>
       <Field label="Complainant Grade"><input className="input" name="complainantGrade" defaultValue={c.complainantGrade} /></Field>
+      <Field label="Complainant Mobile"><input className="input" name="complainantMobile" type="tel" defaultValue={c.complainantMobile} /></Field>
+      <Field label="Complainant Email"><input className="input" name="complainantEmail" type="email" defaultValue={c.complainantEmail} /></Field>
+
+      {/* Primary respondent */}
+      <div className="md:col-span-3 mt-2 mb-1">
+        <div className="text-xs font-bold text-ink-500 dark:text-gray-400 uppercase tracking-wider">Primary Respondent</div>
+      </div>
       <Field label="Respondent Name"><input className="input" name="respondentName" defaultValue={c.respondentName} /></Field>
       <Field label="Respondent E-Code">
         <EcodeLookup
@@ -124,6 +156,13 @@ export function IntakeEditForm({
       </Field>
       <Field label="Respondent Entity"><input className="input" name="respondentEntity" defaultValue={c.respondentEntity} /></Field>
       <Field label="Respondent Grade"><input className="input" name="respondentGrade" defaultValue={c.respondentGrade} /></Field>
+
+      {/* Additional respondents with E-code lookup */}
+      <div className="md:col-span-3">
+        <div className="text-xs font-bold text-ink-500 dark:text-gray-400 uppercase tracking-wider mb-2">Additional Respondent(s)</div>
+        <RespondentTable respondents={extraRespondents} onChange={setExtraRespondents} />
+      </div>
+
       <Field label="City"><input className="input" name="city" defaultValue={c.city} /></Field>
       <Field label="State"><input className="input" name="state" defaultValue={c.state} /></Field>
       <Field label="HRBP / SPOC"><input className="input" name="hrbpSpoc" defaultValue={c.hrbpSpoc} /></Field>

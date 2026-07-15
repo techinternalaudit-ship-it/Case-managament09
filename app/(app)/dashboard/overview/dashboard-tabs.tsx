@@ -13,7 +13,7 @@ type Stats = {
   substRate: number;
   bySeverity: { name: string; value: number }[];
   months: { key: string; intake: number; closed: number }[];
-  catStatus: { name: string; Open: number; InProgress: number; OnHold: number; Closed: number; ReportSent: number }[];
+  catStatus: { name: string; NotStarted: number; InProgress: number; DraftReview: number; PendingL1: number; PendingL2: number; Closed: number }[];
   topEntities: { name: string; count: number }[];
 };
 

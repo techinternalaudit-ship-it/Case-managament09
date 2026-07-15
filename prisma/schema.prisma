@@ -29,6 +29,22 @@ model User {
   attachments   CaseAttachment[]
   auditLogs     AuditLog[]
   employeeUploads EmployeeUploadLog[]
+  passwordResetRequests    PasswordResetRequest[] @relation("passwordResetRequests")
+  passwordResetResolutions PasswordResetRequest[] @relation("passwordResetResolutions")
+}
+
+model PasswordResetRequest {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation("passwordResetRequests", fields: [userId], references: [id], onDelete: Cascade)
+  status       String    @default("PENDING") // PENDING | RESOLVED | DISMISSED
+  requestedAt  DateTime  @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("passwordResetResolutions", fields: [resolvedById], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Case {
@@ -49,10 +65,13 @@ model Case {
   complainantECode      String?
   complainantEntity     String?
   complainantGrade      String?
+  complainantMobile     String?
+  complainantEmail      String?
   respondentName        String
   respondentECode       String?
   respondentEntity      String
   respondentGrade       String?
+  respondents           String?  // JSON array for multiple respondents [{name,eCode,entity,grade,dept,city,state,hrbpSpoc,hodName,hodEntity}]
   city                  String?
   state                 String?
   hrbpSpoc              String?
@@ -65,17 +84,21 @@ model Case {
 
   // Investigation lifecycle (AB+)
   reportLink            String?
-  investigationStatus   String   @default("OPEN") // OPEN | IN_PROGRESS | ON_HOLD | PENDING_L1_REVIEW | PENDING_L2_REVIEW | CLOSED | REPORT_SENT_TO_CBO
+  investigationStatus   String   @default("INVESTIGATION_NOT_STARTED") // INVESTIGATION_NOT_STARTED | INCOMPLETE_DETAILS | INVESTIGATION_IN_PROGRESS | DRAFT_REVIEW | CLOSED_WITH_MHD | CLOSED_WITH_HR_SPOC | PENDING_L1_REVIEW | PENDING_L2_REVIEW | CLOSED
+  investigationStartedAt DateTime?   // auto-captured when investigation starts
+  investigationReport   String?  // JSON blob for structured report
 
   // Review workflow
   l1ReviewerId          String?
   l2ReviewerId          String?
   investigatorSubmittedAt DateTime?
+  l1ReviewStartedAt     DateTime?
   l1ReviewedAt          DateTime?
-  l1ReviewStatus        String?      // APPROVED | REJECTED
+  l1ReviewStatus        String?      // REVIEW_NOT_STARTED | REVIEW_IN_PROGRESS | CORRECTIONS_REQUIRED | CORRECTIONS_COMPLETED | COMPLETED
   l1Comments            String?
+  l2ReviewStartedAt     DateTime?
   l2ReviewedAt          DateTime?
-  l2ReviewStatus        String?      // APPROVED | REJECTED
+  l2ReviewStatus        String?      // REVIEW_NOT_STARTED | REVIEW_IN_PROGRESS | CORRECTIONS_REQUIRED | CORRECTIONS_COMPLETED | COMPLETED
   l2Comments            String?
   remarks1              String?
   substantiated         Boolean?

@@ -24,7 +24,7 @@ type CaseRow = {
 function buildStats(cases: CaseRow[]) {
   const total = cases.length;
   const open = cases.filter((c) => c.investigationStatus !== "CLOSED").length;
-  const inProg = cases.filter((c) => c.investigationStatus === "IN_PROGRESS").length;
+  const inProg = cases.filter((c) => c.investigationStatus === "INVESTIGATION_IN_PROGRESS").length;
   const now = new Date();
   const closedThisMonth = cases.filter((c) => {
     if (!c.closureDate) return false;
@@ -73,11 +73,12 @@ function buildStats(cases: CaseRow[]) {
   }
   const catStatus = [...catMap.entries()].map(([name, statuses]) => ({
     name,
-    Open: statuses["OPEN"] ?? 0,
-    InProgress: statuses["IN_PROGRESS"] ?? 0,
-    OnHold: statuses["ON_HOLD"] ?? 0,
-    Closed: statuses["CLOSED"] ?? 0,
-    ReportSent: statuses["REPORT_SENT_TO_CBO"] ?? 0,
+    NotStarted: statuses["INVESTIGATION_NOT_STARTED"] ?? 0,
+    InProgress: statuses["INVESTIGATION_IN_PROGRESS"] ?? 0,
+    DraftReview: statuses["DRAFT_REVIEW"] ?? 0,
+    PendingL1: statuses["PENDING_L1_REVIEW"] ?? 0,
+    PendingL2: statuses["PENDING_L2_REVIEW"] ?? 0,
+    Closed: (statuses["CLOSED"] ?? 0) + (statuses["CLOSED_WITH_MHD"] ?? 0) + (statuses["CLOSED_WITH_HR_SPOC"] ?? 0),
   }));
 
   const entityMap = new Map<string, number>();

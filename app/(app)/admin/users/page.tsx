@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/rbac";
-import { createUser, toggleUserActive, updateUserRoles } from "./actions";
+import { createUser, toggleUserActive, updateUserRoles, resolvePasswordReset, dismissPasswordReset } from "./actions";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
 import { DeleteButton } from "./delete-button";
 import { Icon } from "@/components/icon";
@@ -14,7 +14,14 @@ export default async function UsersAdminPage() {
   if (!session?.user) redirect("/sign-in");
   if (!can(session.user, "user:manage")) return <div className="card p-6">Forbidden.</div>;
 
-  const users = await db.user.findMany({ orderBy: { createdAt: "desc" } });
+  const [users, pendingResets] = await Promise.all([
+    db.user.findMany({ orderBy: { createdAt: "desc" } }),
+    db.passwordResetRequest.findMany({
+      where: { status: "PENDING" },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { requestedAt: "desc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -22,6 +29,53 @@ export default async function UsersAdminPage() {
         <h1 className="page-title">Users</h1>
         <p className="page-sub">Manage team members and their access roles.</p>
       </div>
+
+      {/* Password reset requests */}
+      {pendingResets.length > 0 && (
+        <div className="card p-5 border-l-4 border-amber-400">
+          <h2 className="section-title mb-4">
+            <div className="h-6 w-6 rounded-lg bg-amber-100 text-amber-600 grid place-items-center"><Icon name="alert-circle" className="h-3.5 w-3.5" /></div>
+            Password Reset Requests
+            <span className="ml-2 text-xs font-medium text-amber-600 bg-amber-50 rounded-full px-2 py-0.5">{pendingResets.length}</span>
+          </h2>
+          <div className="space-y-3">
+            {pendingResets.map((req) => (
+              <div key={req.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-ink-50/50 border border-ink-100">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-amber-100 text-amber-700 grid place-items-center text-xs font-bold">
+                    {req.user.name.split(/\s+/).map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-ink-800">{req.user.name}</div>
+                    <div className="text-xs text-ink-400">{req.user.email} · {formatDate(req.requestedAt)}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <form action={resolvePasswordReset} className="flex items-center gap-2">
+                    <input type="hidden" name="requestId" value={req.id} />
+                    <input
+                      type="password"
+                      name="newPassword"
+                      required
+                      placeholder="New password"
+                      className="input py-1.5 px-2.5 text-xs w-32"
+                    />
+                    <button className="btn-primary py-1.5 px-3 text-xs gap-1">
+                      <Icon name="check" className="h-3 w-3" /> Reset
+                    </button>
+                  </form>
+                  <form action={dismissPasswordReset}>
+                    <input type="hidden" name="requestId" value={req.id} />
+                    <button className="btn-secondary py-1.5 px-3 text-xs text-ink-500 hover:text-ink-700">
+                      Dismiss
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add user form */}
       <form action={createUser} className="card p-5">
