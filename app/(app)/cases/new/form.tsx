@@ -220,8 +220,8 @@ export function CaseIntakeForm({
               {COMPLAINANT_TYPE_LIST.map((o) => <option key={o}>{o}</option>)}
             </select>
           </Field>
-          {isInternalComplainant && (
-            <Field label="E-code">
+          <Field label={`Complainant E-Code${isInternalComplainant ? "" : " (disabled)"}`}>
+            {isInternalComplainant ? (
               <EcodeLookup
                 inputName="complainantECode"
                 placeholder="Type E-code to search…"
@@ -233,27 +233,26 @@ export function CaseIntakeForm({
                   mobileNumber: "complainantMobile",
                 }}
               />
-            </Field>
-          )}
+            ) : (
+              <>
+                <input className="input bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" disabled placeholder="Select Employee / HR / MHD to enable" />
+                <input type="hidden" name="complainantECode" value="" />
+              </>
+            )}
+          </Field>
           <Field label="Name"><input className="input" name="complainantName" /></Field>
-          {isInternalComplainant && (
-            <>
-              <Field label="Entity"><input className="input" name="complainantEntity" placeholder="OCL / PSPL / …" /></Field>
-              <Field label="Grade"><input className="input" name="complainantGrade" /></Field>
-              <Field label="Mobile No."><input className="input" name="complainantMobile" type="tel" placeholder="Mobile number" /></Field>
-              <Field label="Email"><input className="input" name="complainantEmail" type="email" placeholder="Email address" /></Field>
-            </>
-          )}
-          {/* Hidden fields for non-internal complainant types (Merchant/Customer/Anonymous) — disabled per tracker rules */}
-          {!isInternalComplainant && (
-            <>
-              <input type="hidden" name="complainantECode" value="" />
-              <input type="hidden" name="complainantEntity" value="" />
-              <input type="hidden" name="complainantGrade" value="" />
-              <input type="hidden" name="complainantMobile" value="" />
-              <input type="hidden" name="complainantEmail" value="" />
-            </>
-          )}
+          <Field label={`Entity${isInternalComplainant ? "" : " (disabled)"}`}>
+            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantEntity" placeholder="OCL / PSPL / …" disabled={!isInternalComplainant} />
+          </Field>
+          <Field label={`Grade${isInternalComplainant ? "" : " (disabled)"}`}>
+            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantGrade" disabled={!isInternalComplainant} />
+          </Field>
+          <Field label={`Mobile No.${isInternalComplainant ? "" : " (disabled)"}`}>
+            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantMobile" type="tel" placeholder={isInternalComplainant ? "Mobile number" : ""} disabled={!isInternalComplainant} />
+          </Field>
+          <Field label={`Email${isInternalComplainant ? "" : " (disabled)"}`}>
+            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantEmail" type="email" placeholder={isInternalComplainant ? "Email address" : ""} disabled={!isInternalComplainant} />
+          </Field>
         </div>
       </div>
 
