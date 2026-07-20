@@ -206,9 +206,11 @@ model Employee {
   bu              String?
   sbu             String?
   segment         String?
+  subSegment      String?
   city            String?
   state           String?
   location        String?
+  country         String?
   employmentStatus String?
   employmentType  String?
   roleCategory    String?
@@ -224,9 +226,34 @@ model Employee {
   hrSpocName      String?
   hodCode         String?
   mobileNumber    String?
+  // Additional columns from Employee Master xlsx
+  groupDoj        String?
+  entityDoj       String?
+  confirmationDate String?
+  bizOpsCode      String?
+  bizOpsName      String?
+  noticePeriod    String?
+  totalExperience String?
+  fatherName      String?
+  bloodGroup      String?
+  personalEmail   String?
+  maritalStatus   String?
+  actualLwd       String?
+  category        String?
+  confirmationStatus String?
+  probationPeriod String?
+  actualEmployment String?
+  actualLocation  String?
+  dateOfResignation String?
+  hrbpLeadCode    String?
+  hrbpLeadName    String?
+  functionalManager String?
+  contractEndDate String?
 
   @@index([name])
   @@index([entity])
+  @@index([department])
+  @@index([employmentStatus])
 }
 
 model EmployeeUploadLog {
