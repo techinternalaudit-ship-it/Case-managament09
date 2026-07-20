@@ -220,39 +220,24 @@ export function CaseIntakeForm({
               {COMPLAINANT_TYPE_LIST.map((o) => <option key={o}>{o}</option>)}
             </select>
           </Field>
-          <Field label={`Complainant E-Code${isInternalComplainant ? "" : " (disabled)"}`}>
-            {isInternalComplainant ? (
-              <EcodeLookup
-                inputName="complainantECode"
-                placeholder="Type E-code to search…"
-                fieldMap={{
-                  name: "complainantName",
-                  entity: "complainantEntity",
-                  grade: "complainantGrade",
-                  email: "complainantEmail",
-                  mobileNumber: "complainantMobile",
-                }}
-              />
-            ) : (
-              <>
-                <input className="input bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" disabled placeholder="Select Employee / HR / MHD to enable" />
-                <input type="hidden" name="complainantECode" value="" />
-              </>
-            )}
+          <Field label="Complainant E-Code">
+            <EcodeLookup
+              inputName="complainantECode"
+              placeholder="Type E-code to search…"
+              fieldMap={{
+                name: "complainantName",
+                entity: "complainantEntity",
+                grade: "complainantGrade",
+                email: "complainantEmail",
+                mobileNumber: "complainantMobile",
+              }}
+            />
           </Field>
           <Field label="Name"><input className="input" name="complainantName" /></Field>
-          <Field label={`Entity${isInternalComplainant ? "" : " (disabled)"}`}>
-            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantEntity" placeholder="OCL / PSPL / …" disabled={!isInternalComplainant} />
-          </Field>
-          <Field label={`Grade${isInternalComplainant ? "" : " (disabled)"}`}>
-            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantGrade" disabled={!isInternalComplainant} />
-          </Field>
-          <Field label={`Mobile No.${isInternalComplainant ? "" : " (disabled)"}`}>
-            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantMobile" type="tel" placeholder={isInternalComplainant ? "Mobile number" : ""} disabled={!isInternalComplainant} />
-          </Field>
-          <Field label={`Email${isInternalComplainant ? "" : " (disabled)"}`}>
-            <input className={`input ${!isInternalComplainant ? "bg-ink-50 dark:bg-white/[0.02] text-ink-300 cursor-not-allowed" : ""}`} name="complainantEmail" type="email" placeholder={isInternalComplainant ? "Email address" : ""} disabled={!isInternalComplainant} />
-          </Field>
+          <Field label="Entity"><input className="input" name="complainantEntity" placeholder="OCL / PSPL / …" /></Field>
+          <Field label="Grade"><input className="input" name="complainantGrade" /></Field>
+          <Field label="Mobile No."><input className="input" name="complainantMobile" type="tel" placeholder="Mobile number" /></Field>
+          <Field label="Email"><input className="input" name="complainantEmail" type="email" placeholder="Email address" /></Field>
         </div>
       </div>
 
