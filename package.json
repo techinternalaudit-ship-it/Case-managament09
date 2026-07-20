@@ -9,7 +9,11 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:seed-employees": "tsx scripts/seed-employees.ts",
+    "db:seed-cases": "tsx scripts/seed-cases.ts",
+    "db:seed-all": "npm run db:seed && npm run db:seed-employees && npm run db:seed-cases",
+    "db:reset": "prisma db push --force-reset && npm run db:seed-all",
+    "render-build": "npm install && npx prisma generate && npx prisma db push && npm run db:seed-all && npm run build",
     "cron:tat": "tsx scripts/tat-scan.ts",
     "postinstall": "prisma generate"
   },
