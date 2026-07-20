@@ -16,7 +16,7 @@ type CaseRow = {
   tatBreach: boolean;
   tatDays: number | null;
   caseAge: number | null;
-  substantiated: boolean | null;
+  substantiated: string | null;
   respondentEntity: string;
   categoryName: string;
 };
@@ -37,8 +37,8 @@ function buildStats(cases: CaseRow[]) {
     if (!closed.length) return 0;
     return Math.round(closed.reduce((s, c) => s + (c.tatDays ?? 0), 0) / closed.length);
   })();
-  const subst = cases.filter((c) => c.substantiated != null);
-  const substRate = subst.length ? Math.round((subst.filter((c) => c.substantiated).length / subst.length) * 100) : 0;
+  const subst = cases.filter((c) => c.substantiated != null && c.substantiated !== "NA");
+  const substRate = subst.length ? Math.round((subst.filter((c) => c.substantiated === "SUBSTANTIATED").length / subst.length) * 100) : 0;
 
   const bySeverity = Object.entries(
     cases.reduce<Record<string, number>>((a, c) => ((a[c.severity] = (a[c.severity] ?? 0) + 1), a), {})
@@ -88,7 +88,7 @@ function buildStats(cases: CaseRow[]) {
   return { total, open, inProg, closedThisMonth, breaches, avgTat, substRate, bySeverity, months, catStatus, topEntities };
 }
 
-function serialize(cases: { severity: string; investigationStatus: string; complaintDate: Date; closureDate: Date | null; tatBreach: boolean; tatDays: number | null; caseAge: number | null; substantiated: boolean | null; respondentEntity: string; category: { name: string } }[]): CaseRow[] {
+function serialize(cases: { severity: string; investigationStatus: string; complaintDate: Date; closureDate: Date | null; tatBreach: boolean; tatDays: number | null; caseAge: number | null; substantiated: string | null; respondentEntity: string; category: { name: string } }[]): CaseRow[] {
   return cases.map((c) => ({
     severity: c.severity,
     investigationStatus: c.investigationStatus,

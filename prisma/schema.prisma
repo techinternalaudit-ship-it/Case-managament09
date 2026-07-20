@@ -101,11 +101,12 @@ model Case {
   l2ReviewStatus        String?      // REVIEW_NOT_STARTED | REVIEW_IN_PROGRESS | CORRECTIONS_REQUIRED | CORRECTIONS_COMPLETED | COMPLETED
   l2Comments            String?
   remarks1              String?
-  substantiated         Boolean?
-  reportStatus          String?
+  substantiated         String?  // SUBSTANTIATED | UNSUBSTANTIATED | PARTIALLY_SUBSTANTIATED | NA
+  reportStatus          String?  // NA - Unsubstantiated | Report ready for DC | Report sent to DC | Report sent to CBO | Report sent to CHRO | NA
   closureDate           DateTime?
-  processRecApproved    Boolean?
-  employeeRecApproved   Boolean?
+  processRecApproved    String?  // YES | NO | NA
+  employeeRecApproved   String?  // YES | NO | NA
+  recommendationApprovalDate DateTime?
   employeeActionCount   Int      @default(0)
   employeeAction        String?
   employeeActionStatus  String?

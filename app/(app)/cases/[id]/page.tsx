@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { can, canViewCase } from "@/lib/rbac";
-import { formatDate, formatDateTime, severityColor, statusColor, reviewStatusColor, STATUS_LABELS, STATUS_LIST, REVIEW_STATUS_LABELS } from "@/lib/utils";
+import { formatDate, formatDateTime, severityColor, statusColor, reviewStatusColor, STATUS_LABELS, STATUS_LIST, REVIEW_STATUS_LABELS, SUBSTANTIATED_LIST, SUBSTANTIATED_LABELS, YES_NO_NA_LIST, YES_NO_NA_LABELS, REPORT_STATUS_LIST, EMPLOYEE_ACTION_LIST, EMPLOYEE_ACTION_STATUS_LIST } from "@/lib/utils";
 import { assignCase, updateCase, uploadAttachment, submitForReview, reviewCase, saveInvestigationReport } from "../actions";
 import { Icon } from "@/components/icon";
 import { Toast } from "@/components/toast";
@@ -233,28 +233,47 @@ export default async function CaseDetailPage({ params, searchParams }: { params:
             </div>
           </Field>
           <Field label="Substantiated">
-            <select className="input" name="substantiated" defaultValue={c.substantiated == null ? "" : c.substantiated ? "true" : "false"} disabled={!canEdit}>
-              <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+            <select className="input" name="substantiated" defaultValue={c.substantiated ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {SUBSTANTIATED_LIST.map((s) => <option key={s} value={s}>{SUBSTANTIATED_LABELS[s]}</option>)}
             </select>
           </Field>
-          <Field label="Report Status"><input className="input" name="reportStatus" defaultValue={c.reportStatus ?? ""} disabled={!canEdit} /></Field>
+          <Field label="Report Status">
+            <select className="input" name="reportStatus" defaultValue={c.reportStatus ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {REPORT_STATUS_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
           <Field label="Closure Date"><input className="input" type="date" name="closureDate" defaultValue={c.closureDate ? c.closureDate.toISOString().slice(0, 10) : ""} disabled={!canEdit} /></Field>
           <Field label="Remarks" className="md:col-span-3"><textarea className="input" rows={2} name="remarks1" defaultValue={c.remarks1 ?? ""} disabled={!canEdit} /></Field>
 
           <Field label="Process Rec Approved">
-            <select className="input" name="processRecApproved" defaultValue={c.processRecApproved == null ? "" : c.processRecApproved ? "true" : "false"} disabled={!canEdit}>
-              <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+            <select className="input" name="processRecApproved" defaultValue={c.processRecApproved ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {YES_NO_NA_LIST.map((s) => <option key={s} value={s}>{YES_NO_NA_LABELS[s]}</option>)}
             </select>
           </Field>
           <Field label="Employee Rec Approved">
-            <select className="input" name="employeeRecApproved" defaultValue={c.employeeRecApproved == null ? "" : c.employeeRecApproved ? "true" : "false"} disabled={!canEdit}>
-              <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+            <select className="input" name="employeeRecApproved" defaultValue={c.employeeRecApproved ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {YES_NO_NA_LIST.map((s) => <option key={s} value={s}>{YES_NO_NA_LABELS[s]}</option>)}
             </select>
           </Field>
+          <Field label="Recommendation Approval Date"><input className="input" type="date" name="recommendationApprovalDate" defaultValue={c.recommendationApprovalDate ? c.recommendationApprovalDate.toISOString().slice(0, 10) : ""} disabled={!canEdit} /></Field>
           <Field label="Employee Action Count"><input className="input" type="number" min={0} name="employeeActionCount" defaultValue={c.employeeActionCount} disabled={!canEdit} /></Field>
 
-          <Field label="Employee Action"><input className="input" name="employeeAction" defaultValue={c.employeeAction ?? ""} disabled={!canEdit} /></Field>
-          <Field label="Employee Action Status"><input className="input" name="employeeActionStatus" defaultValue={c.employeeActionStatus ?? ""} disabled={!canEdit} /></Field>
+          <Field label="Employee Action">
+            <select className="input" name="employeeAction" defaultValue={c.employeeAction ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {EMPLOYEE_ACTION_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
+          <Field label="Employee Action Status">
+            <select className="input" name="employeeActionStatus" defaultValue={c.employeeActionStatus ?? ""} disabled={!canEdit}>
+              <option value="">—</option>
+              {EMPLOYEE_ACTION_STATUS_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
           <Field label="Employee Action Date"><input className="input" type="date" name="employeeActionDate" defaultValue={c.employeeActionDate ? c.employeeActionDate.toISOString().slice(0, 10) : ""} disabled={!canEdit} /></Field>
 
           <Field label="Process Action"><input className="input" name="processAction" defaultValue={c.processAction ?? ""} disabled={!canEdit} /></Field>

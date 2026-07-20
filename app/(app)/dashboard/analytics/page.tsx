@@ -28,8 +28,7 @@ export default async function AnalyticsPage() {
     saleNonSale: c.saleNonSale ?? "\u2014",
     complainantType: c.complainantType ?? "\u2014",
     tatBreach: c.tatBreach ? "Yes" : "No",
-    substantiated:
-      c.substantiated == null ? "\u2014" : c.substantiated ? "Yes" : "No",
+    substantiated: c.substantiated ?? "\u2014",
     city: c.city ?? "\u2014",
     state: c.state ?? "\u2014",
     department: c.respondentDept ?? "\u2014",

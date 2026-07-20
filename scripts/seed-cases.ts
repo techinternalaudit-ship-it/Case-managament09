@@ -102,7 +102,7 @@ async function main() {
 
     const t = computeTAT({ complaintDate, closureDate, severity: sev });
 
-    const substantiated = isClosed ? Math.random() < 0.55 : null;
+    const substantiated = isClosed ? rand(["SUBSTANTIATED", "UNSUBSTANTIATED", "PARTIALLY_SUBSTANTIATED"]) : null;
 
     const caseNo = nextNo++;
     await db.case.create({
@@ -116,7 +116,7 @@ async function main() {
         severity: sev,
         assigneeId: Math.random() < 0.9 ? assignee.id : null,
         subjectLine: subject,
-        complainantType: rand(["Employee", "External", "Anonymous"]),
+        complainantType: rand(["Employee", "Merchant", "Customer", "HR", "MHD", "Anonymous"]),
         complainantName: Math.random() < 0.7 ? rand(RESPONDENTS) : null,
         complainantEntity: rand(ENTITIES),
         respondentName: respondent,

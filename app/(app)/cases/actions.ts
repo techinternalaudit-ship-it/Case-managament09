@@ -210,11 +210,12 @@ const updateSchema = intakeSchema.partial().extend({
   investigationStatus: z.enum(["INVESTIGATION_NOT_STARTED", "INCOMPLETE_DETAILS", "INVESTIGATION_IN_PROGRESS", "DRAFT_REVIEW", "CLOSED_WITH_MHD", "CLOSED_WITH_HR_SPOC", "PENDING_L1_REVIEW", "PENDING_L2_REVIEW", "CLOSED"]).optional().nullable(),
   investigationReport: z.string().optional().nullable(),
   remarks1: z.string().optional().nullable(),
-  substantiated: z.preprocess((v) => (v === "" || v == null ? null : v === "true" || v === "on"), z.boolean().nullable()).optional(),
+  substantiated: z.string().optional().nullable(),
   reportStatus: z.string().optional().nullable(),
   closureDate: z.string().optional().nullable(),
-  processRecApproved: z.preprocess((v) => (v === "" || v == null ? null : v === "true" || v === "on"), z.boolean().nullable()).optional(),
-  employeeRecApproved: z.preprocess((v) => (v === "" || v == null ? null : v === "true" || v === "on"), z.boolean().nullable()).optional(),
+  processRecApproved: z.string().optional().nullable(),
+  employeeRecApproved: z.string().optional().nullable(),
+  recommendationApprovalDate: z.string().optional().nullable(),
   employeeActionCount: z.coerce.number().int().nonnegative().optional(),
   employeeAction: z.string().optional().nullable(),
   employeeActionStatus: z.string().optional().nullable(),
@@ -240,7 +241,7 @@ export async function updateCase(formData: FormData) {
   const raw = Object.fromEntries(formData);
   const parsed = updateSchema.parse(raw);
 
-  const dateFields = ["complaintDate","escalationDate","assignDate","closureDate","employeeActionDate","processActionDate"] as const;
+  const dateFields = ["complaintDate","escalationDate","assignDate","closureDate","employeeActionDate","processActionDate","recommendationApprovalDate"] as const;
   const updateData: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(parsed)) {
     if (k === "id") continue;

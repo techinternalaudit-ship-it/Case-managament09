@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import { EcodeLookup } from "@/components/ecode-lookup";
 import { RespondentTable } from "@/components/respondent-table";
+import { ESCALATION_CHANNEL_LIST, COMPLAINANT_TYPE_LIST } from "@/lib/utils";
 
 type Cat = { id: string; name: string; subs: { id: string; name: string }[] };
 type Respondent = { name: string; eCode: string; entity: string; grade: string };
@@ -25,6 +26,7 @@ export function CaseIntakeForm({
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const [extraRespondents, setExtraRespondents] = useState<Respondent[]>([]);
+  const isInternalComplainant = ["Employee", "HR", "MHD"].includes(complainantType);
 
   const subOptions = useMemo(
     () => categories.find((c) => c.id === categoryId)?.subs ?? [],
@@ -159,13 +161,7 @@ export function CaseIntakeForm({
           <Field label="Escalation Channel*">
             <select className="input" name="escalationChannel" required defaultValue="">
               <option value="" disabled>Select…</option>
-              <option>Employee Escalations</option>
-              <option>Whistleblower Portal</option>
-              <option>Email</option>
-              <option>Helpline</option>
-              <option>Walk-in</option>
-              <option>Anonymous</option>
-              <option>Other</option>
+              {ESCALATION_CHANNEL_LIST.map((o) => <option key={o}>{o}</option>)}
             </select>
           </Field>
           <Field label="Complaint Date*"><input className="input" name="complaintDate" type="date" required /></Field>
@@ -220,10 +216,11 @@ export function CaseIntakeForm({
               const val = e.target.value;
               setComplainantType(val);
             }}>
-              <option value="" disabled>Select…</option><option>Employee</option><option>Merchant</option><option>Customer</option><option>External</option><option>Anonymous</option>
+              <option value="" disabled>Select…</option>
+              {COMPLAINANT_TYPE_LIST.map((o) => <option key={o}>{o}</option>)}
             </select>
           </Field>
-          {complainantType === "Employee" && (
+          {isInternalComplainant && (
             <Field label="E-code">
               <EcodeLookup
                 inputName="complainantECode"
@@ -239,20 +236,22 @@ export function CaseIntakeForm({
             </Field>
           )}
           <Field label="Name"><input className="input" name="complainantName" /></Field>
-          {complainantType === "Employee" && (
+          {isInternalComplainant && (
             <>
               <Field label="Entity"><input className="input" name="complainantEntity" placeholder="OCL / PSPL / …" /></Field>
               <Field label="Grade"><input className="input" name="complainantGrade" /></Field>
+              <Field label="Mobile No."><input className="input" name="complainantMobile" type="tel" placeholder="Mobile number" /></Field>
+              <Field label="Email"><input className="input" name="complainantEmail" type="email" placeholder="Email address" /></Field>
             </>
           )}
-          <Field label="Mobile No."><input className="input" name="complainantMobile" type="tel" placeholder="Mobile number" /></Field>
-          <Field label="Email"><input className="input" name="complainantEmail" type="email" placeholder="Email address" /></Field>
-          {/* Hidden fields for non-employee types to ensure form data is present */}
-          {complainantType !== "Employee" && (
+          {/* Hidden fields for non-internal complainant types (Merchant/Customer/Anonymous) — disabled per tracker rules */}
+          {!isInternalComplainant && (
             <>
               <input type="hidden" name="complainantECode" value="" />
               <input type="hidden" name="complainantEntity" value="" />
               <input type="hidden" name="complainantGrade" value="" />
+              <input type="hidden" name="complainantMobile" value="" />
+              <input type="hidden" name="complainantEmail" value="" />
             </>
           )}
         </div>

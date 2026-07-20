@@ -74,6 +74,57 @@ export const REVIEW_STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Completed",
 };
 
+export const ESCALATION_CHANNEL_LIST = [
+  "Employee Escalations",
+  "HR Escalations",
+  "Executive Escalations",
+  "Business escalation",
+  "Internal Audit",
+  "Vigilance Initiated",
+  "Social Media Escalation",
+  "Whistleblower",
+];
+
+export const COMPLAINANT_TYPE_LIST = ["Merchant", "Employee", "Customer", "HR", "MHD", "Anonymous"];
+
+export const SUBSTANTIATED_LIST = ["SUBSTANTIATED", "UNSUBSTANTIATED", "PARTIALLY_SUBSTANTIATED", "NA"] as const;
+export const SUBSTANTIATED_LABELS: Record<string, string> = {
+  SUBSTANTIATED: "Substantiated",
+  UNSUBSTANTIATED: "Un-substantiated",
+  PARTIALLY_SUBSTANTIATED: "Partially Substantiated",
+  NA: "NA",
+};
+
+export const YES_NO_NA_LIST = ["YES", "NO", "NA"] as const;
+export const YES_NO_NA_LABELS: Record<string, string> = { YES: "Yes", NO: "No", NA: "NA" };
+
+export const REPORT_STATUS_LIST = [
+  "NA - Unsubstantiated",
+  "Report ready for DC",
+  "Report sent to DC",
+  "Report sent to CBO",
+  "Report sent to CHRO",
+  "NA",
+];
+
+export const EMPLOYEE_ACTION_LIST = [
+  "Termination",
+  "Warning Letter",
+  "ATL",
+  "Caution Letter",
+  "Others",
+  "No action required",
+  "Verbal Warning",
+];
+
+export const EMPLOYEE_ACTION_STATUS_LIST = [
+  "Action Implemented",
+  "Action In-progress",
+  "Difficult in Implementation",
+  "Yet to communicate",
+  "Not Required",
+];
+
 export function monthLabel(d: Date) {
   return d.toLocaleString("en-US", { month: "long" });
 }

@@ -51,6 +51,7 @@ const headerMap: Record<string, string> = {
   "closure date": "closureDate",
   "process recommendation approved by dc": "processRecApproved",
   "employee recommendation approved by dc": "employeeRecApproved",
+  "recommendation approval date": "recommendationApprovalDate",
   "employee related count": "employeeActionCount",
   "employee related action": "employeeAction",
   "employee related action status": "employeeActionStatus",
@@ -102,11 +103,22 @@ function norm(s: unknown): string {
   return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function asBool(v: unknown): boolean | null {
+function asYesNoNa(v: unknown): string | null {
   if (v == null || v === "") return null;
   const s = norm(v);
-  if (s === "yes" || s === "true" || s === "y" || s === "substantiated") return true;
-  if (s === "no" || s === "false" || s === "n" || s === "not substantiated") return false;
+  if (s === "yes" || s === "true" || s === "y") return "YES";
+  if (s === "no" || s === "false" || s === "n") return "NO";
+  if (s === "na" || s === "n/a" || s === "not applicable") return "NA";
+  return null;
+}
+
+function asSubstantiated(v: unknown): string | null {
+  if (v == null || v === "") return null;
+  const s = norm(v);
+  if (s === "substantiated" || s === "yes" || s === "true") return "SUBSTANTIATED";
+  if (s === "un-substantiated" || s === "unsubstantiated" || s === "not substantiated" || s === "no" || s === "false") return "UNSUBSTANTIATED";
+  if (s === "partially substantiated" || s === "partial") return "PARTIALLY_SUBSTANTIATED";
+  if (s === "na" || s === "n/a") return "NA";
   return null;
 }
 
@@ -257,11 +269,12 @@ export async function importExcel(formData: FormData) {
           reportLink: r.reportLink ? String(r.reportLink) : null,
           investigationStatus: STATUS_MAP[norm(r.investigationStatus)] ?? (closureDate ? "CLOSED" : "INVESTIGATION_NOT_STARTED"),
           remarks1: r.remarks1 ? String(r.remarks1) : null,
-          substantiated: asBool(r.substantiated),
+          substantiated: asSubstantiated(r.substantiated),
           reportStatus: r.reportStatus ? String(r.reportStatus) : null,
           closureDate,
-          processRecApproved: asBool(r.processRecApproved),
-          employeeRecApproved: asBool(r.employeeRecApproved),
+          processRecApproved: asYesNoNa(r.processRecApproved),
+          employeeRecApproved: asYesNoNa(r.employeeRecApproved),
+          recommendationApprovalDate: asDate(r.recommendationApprovalDate),
           employeeActionCount: asInt(r.employeeActionCount) ?? 0,
           employeeAction: r.employeeAction ? String(r.employeeAction) : null,
           employeeActionStatus: r.employeeActionStatus ? String(r.employeeActionStatus) : null,

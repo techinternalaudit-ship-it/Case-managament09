@@ -44,7 +44,7 @@ export default async function CompliancePage() {
     if (idx >= 0) breachByMonth[idx].breaches++;
   }
 
-  const approved = cases.filter((c) => c.processRecApproved && c.closureDate);
+  const approved = cases.filter((c) => c.processRecApproved === "YES" && c.closureDate);
   const avgApprovalCycle = approved.length
     ? Math.round(approved.reduce((s, c) => s + Math.max(0, Math.floor((c.closureDate!.getTime() - c.createdAt.getTime()) / 86400000)), 0) / approved.length)
     : 0;
