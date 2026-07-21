@@ -36,6 +36,7 @@ sudo npm install -g pm2
 # 3. Clone or pull repo
 echo ""
 echo "[3/8] Setting up codebase..."
+cd /home/ubuntu
 if [ -d "$APP_DIR" ]; then
   echo "Removing old install..."
   pm2 stop vigilance 2>/dev/null || true
