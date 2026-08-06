@@ -1,13 +1,13 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
-import bcrypt from "bcryptjs";
+import { hashPassword, validatePassword, verifyPassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
 
 export async function changeOwnPassword(
   formData: FormData,
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; signedOut?: boolean }> {
   const session = await auth();
   if (!session?.user) return { error: "Not signed in." };
 
@@ -18,9 +18,6 @@ export async function changeOwnPassword(
   if (!currentPassword || !newPassword || !confirmPassword) {
     return { error: "All fields are required." };
   }
-  if (newPassword.length < 6) {
-    return { error: "New password must be at least 6 characters." };
-  }
   if (newPassword !== confirmPassword) {
     return { error: "New password and confirmation do not match." };
   }
@@ -28,18 +25,30 @@ export async function changeOwnPassword(
   const user = await db.user.findUnique({ where: { id: session.user.id } });
   if (!user) return { error: "User not found." };
 
-  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+  const ok = await verifyPassword(currentPassword, user.passwordHash);
   if (!ok) return { error: "Current password is incorrect." };
 
-  if (await bcrypt.compare(newPassword, user.passwordHash)) {
+  const check = validatePassword(newPassword, { email: user.email, name: user.name });
+  if (!check.ok) return { error: check.error };
+
+  if (await verifyPassword(newPassword, user.passwordHash)) {
     return { error: "New password must be different from your current password." };
   }
 
   await db.user.update({
     where: { id: user.id },
-    data: { passwordHash: bcrypt.hashSync(newPassword, 10) },
+    data: {
+      passwordHash: hashPassword(newPassword),
+      passwordChangedAt: new Date(),
+      mustChangePassword: false,
+    },
   });
 
+  // Invalidate the current session: it carries a stale mustChangePassword claim,
+  // and dropping it means a password change also revokes any other stolen copy
+  // of the old token. The caller signs in again with the new password.
+  await signOut({ redirect: false });
+
   revalidatePath("/profile");
-  return { success: true };
+  return { success: true, signedOut: true };
 }

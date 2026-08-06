@@ -5,7 +5,9 @@ import { Icon } from "@/components/icon";
 export function ChangePasswordForm({
   changeOwnPassword,
 }: {
-  changeOwnPassword: (data: FormData) => Promise<{ error?: string; success?: boolean }>;
+  changeOwnPassword: (
+    data: FormData,
+  ) => Promise<{ error?: string; success?: boolean; signedOut?: boolean }>;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,11 @@ export function ChangePasswordForm({
       } else if (result?.success) {
         setSuccess(true);
         formRef.current?.reset();
+        // The change revoked this session — send them back to sign in with it.
+        if (result.signedOut) {
+          setTimeout(() => { window.location.href = "/sign-in?passwordChanged=1"; }, 1500);
+          return;
+        }
       }
     } finally {
       setLoading(false);
@@ -42,7 +49,7 @@ export function ChangePasswordForm({
       {success && (
         <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-start gap-2">
           <Icon name="check" className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>Password changed successfully.</span>
+          <span>Password changed. Signing you out — please sign in again.</span>
         </div>
       )}
 
@@ -65,10 +72,10 @@ export function ChangePasswordForm({
           type="password"
           name="newPassword"
           required
-          minLength={6}
+          minLength={12}
           disabled={loading}
           className="input disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="At least 6 characters"
+          placeholder="Min 12 chars, with upper, lower, number & symbol"
           autoComplete="new-password"
         />
       </div>
@@ -79,7 +86,7 @@ export function ChangePasswordForm({
           type="password"
           name="confirmPassword"
           required
-          minLength={6}
+          minLength={12}
           disabled={loading}
           className="input disabled:opacity-50 disabled:cursor-not-allowed"
           placeholder="Re-enter new password"

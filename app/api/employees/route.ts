@@ -1,14 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+
+/**
+ * Minimum prefix length. At 2 characters a caller could walk the whole
+ * directory with a few hundred requests and harvest every employee's email and
+ * mobile number; 4 makes bulk enumeration impractical while still supporting
+ * the E-code autofill, which is always given a full or near-full code.
+ */
+const MIN_PREFIX = 4;
+
+/** Lookups allowed per user per minute — generous for typing, useless for scraping. */
+const LOOKUP_LIMIT = 30;
 
 // GET /api/employees?ecode=55952  — exact or prefix match
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const limit = rateLimit(`employee-lookup:${session.user.id}`, LOOKUP_LIMIT, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many lookups. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   const ecode = req.nextUrl.searchParams.get("ecode")?.trim();
-  if (!ecode || ecode.length < 2) return NextResponse.json([]);
+  if (!ecode || ecode.length < MIN_PREFIX) return NextResponse.json([]);
 
   const employees = await db.employee.findMany({
     where: { eCode: { startsWith: ecode } },

@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 
+/** Must match MIN_PREFIX in app/api/employees/route.ts. */
+const MIN_PREFIX = 4;
+
 type Employee = {
   eCode: string;
   name: string;
@@ -44,7 +47,7 @@ export function EcodeLookup({
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const lookup = useCallback(async (ecode: string) => {
-    if (ecode.length < 2) { setResults([]); return; }
+    if (ecode.length < MIN_PREFIX) { setResults([]); return; }
     setLoading(true);
     try {
       const res = await fetch(`/api/employees?ecode=${encodeURIComponent(ecode)}`);
@@ -163,7 +166,7 @@ export function EcodeLookup({
       )}
 
       {/* No results message */}
-      {showDropdown && results.length === 0 && query.length >= 2 && !loading && (
+      {showDropdown && results.length === 0 && query.length >= MIN_PREFIX && !loading && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-ink-200/60 dark:border-white/10 rounded-xl shadow-xl px-4 py-3">
           <p className="text-xs text-ink-400 dark:text-gray-500">No employee found for &quot;{query}&quot;</p>
         </div>

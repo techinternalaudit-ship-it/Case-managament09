@@ -22,6 +22,14 @@ model User {
   scopeDept     String?
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
+
+  // Login security
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  passwordChangedAt   DateTime?
+  mustChangePassword  Boolean   @default(false)
+
   assignedCases Case[]    @relation("assignee")
   createdCases  Case[]    @relation("creator")
   l1ReviewCases Case[]    @relation("l1Reviewer")
@@ -45,6 +53,20 @@ model PasswordResetRequest {
 
   @@index([userId])
   @@index([status])
+}
+
+/// Security log of every sign-in attempt, including failures for unknown emails.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  reason    String?  // BAD_PASSWORD | NO_SUCH_USER | INACTIVE | LOCKED
+  ip        String?
+  userAgent String?
+  at        DateTime @default(now())
+
+  @@index([email, at])
+  @@index([at])
 }
 
 model Case {

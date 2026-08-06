@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can } from "@/lib/rbac";
-import bcrypt from "bcryptjs";
+import { hashPassword, validatePassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
@@ -23,10 +23,17 @@ export async function createUser(formData: FormData) {
   const scopeEntity = String(formData.get("scopeEntity") ?? "") || null;
   const scopeDept = String(formData.get("scopeDept") ?? "") || null;
   if (!email || !name || !password) throw new Error("BAD_REQUEST");
+
+  const check = validatePassword(password, { email, name });
+  if (!check.ok) throw new Error(check.error);
+
   await db.user.create({
     data: {
       email, name, role, roles, scopeEntity, scopeDept,
-      passwordHash: bcrypt.hashSync(password, 10),
+      passwordHash: hashPassword(password),
+      passwordChangedAt: new Date(),
+      // Admin picked this password, so the user must replace it on first use.
+      mustChangePassword: true,
     },
   });
   revalidatePath("/admin/users");
@@ -58,13 +65,30 @@ export async function resolvePasswordReset(formData: FormData) {
   const newPassword = String(formData.get("newPassword") ?? "");
   if (!requestId || !newPassword) throw new Error("BAD_REQUEST");
 
-  const req = await db.passwordResetRequest.findUnique({ where: { id: requestId } });
+  const req = await db.passwordResetRequest.findUnique({
+    where: { id: requestId },
+    include: { user: { select: { email: true, name: true } } },
+  });
   if (!req || req.status !== "PENDING") throw new Error("NOT_FOUND");
+
+  const check = validatePassword(newPassword, {
+    email: req.user.email,
+    name: req.user.name,
+  });
+  if (!check.ok) throw new Error(check.error);
 
   await db.$transaction([
     db.user.update({
       where: { id: req.userId },
-      data: { passwordHash: bcrypt.hashSync(newPassword, 10) },
+      data: {
+        passwordHash: hashPassword(newPassword),
+        passwordChangedAt: new Date(),
+        // Reset by an admin who now knows it — force a change on next sign-in.
+        mustChangePassword: true,
+        // A successful reset should also clear any active lockout.
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
     }),
     db.passwordResetRequest.update({
       where: { id: requestId },
