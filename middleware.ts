@@ -24,13 +24,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-    salt: process.env.AUTH_URL?.startsWith("https")
-      ? "__Secure-authjs.session-token"
-      : "authjs.session-token",
-  });
+  // Auth.js prefixes the cookie with __Secure- once the app is served over
+  // HTTPS. Try both names so enabling TLS later cannot silently stop this check.
+  let token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: "authjs.session-token" });
+  if (!token) {
+    token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+      salt: "__Secure-authjs.session-token",
+    });
+  }
 
   if (token?.mustChangePassword) {
     const url = req.nextUrl.clone();
