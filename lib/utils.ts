@@ -9,14 +9,14 @@ export function formatDate(d: Date | string | null | undefined) {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;
   if (isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit" });
+  return date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit", timeZone: "Asia/Kolkata" });
 }
 
 export function formatDateTime(d: Date | string | null | undefined) {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;
   if (isNaN(date.getTime())) return "—";
-  return date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
 }
 
 export const ROLE_LABELS: Record<string, string> = {
