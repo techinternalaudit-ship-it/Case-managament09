@@ -36,7 +36,10 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  experimental: { serverActions: { bodySizeLimit: "10mb" } },
+  // Deliberately above the app's own 10 MB attachment cap (MAX_FILE_SIZE in
+  // cases/actions.ts). If the two matched, an oversized upload would be killed
+  // by this limit before the action could return "File too large".
+  experimental: { serverActions: { bodySizeLimit: "15mb" } },
   devIndicators: false,
   poweredByHeader: false,
   async headers() {

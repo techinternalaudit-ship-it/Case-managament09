@@ -339,22 +339,30 @@ const ALLOWED_EXTENSIONS = new Set([
   ".mp4", ".zip",
 ]);
 
-export async function uploadAttachment(formData: FormData) {
+/**
+ * Returns validation problems rather than throwing them. Next redacts thrown
+ * messages in production, so a throw here would reach the user as an opaque
+ * error screen instead of "File too large".
+ */
+export async function uploadAttachment(
+  _prev: { error?: string } | null,
+  formData: FormData,
+): Promise<{ error?: string } | null> {
   const u = await user();
   const id = String(formData.get("caseId") ?? "");
   const file = formData.get("file") as File | null;
-  if (!id || !file) throw new Error("BAD_REQUEST");
+  if (!id || !file || file.size === 0) return { error: "Choose a file to upload." };
 
   // --- File validation ---
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error("File too large. Maximum allowed size is 10 MB.");
+    return { error: "File too large. Maximum allowed size is 10 MB." };
   }
 
   const ext = path.extname(file.name).toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext) && !ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(
-      "File type not allowed. Accepted types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, MP4, ZIP."
-    );
+    return {
+      error: "File type not allowed. Accepted types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, MP4, ZIP.",
+    };
   }
 
   const existing = await db.case.findUnique({ where: { id } });

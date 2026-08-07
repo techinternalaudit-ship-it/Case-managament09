@@ -11,6 +11,7 @@ import { SaveButton } from "@/components/save-button";
 import { ReviewForm } from "@/components/review-form";
 import { IntakeEditForm } from "@/components/intake-edit-form";
 import { InvestigationReportForm } from "@/components/investigation-report-form";
+import { AttachmentUploadForm } from "@/components/attachment-upload-form";
 
 export default async function CaseDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; assigned?: string; uploaded?: string; submitted?: string; reviewed?: string }> }) {
   const { id } = await params;
@@ -450,11 +451,7 @@ export default async function CaseDetailPage({ params, searchParams }: { params:
           Attachments ({c.attachments.length})
         </h2>
         {canEdit && (
-          <form action={uploadAttachment} className="flex items-end gap-2 mb-4">
-            <input type="hidden" name="caseId" value={c.id} />
-            <div className="flex-1"><label className="label">Upload file</label><input className="input" type="file" name="file" required /></div>
-            <button className="btn-secondary">Upload</button>
-          </form>
+          <AttachmentUploadForm caseId={c.id} uploadAttachment={uploadAttachment} />
         )}
         <ul className="text-sm divide-y divide-ink-100">
           {c.attachments.map((a) => (
