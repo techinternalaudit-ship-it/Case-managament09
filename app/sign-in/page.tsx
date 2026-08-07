@@ -26,7 +26,7 @@ async function googleSignIn() {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; sessionExpired?: string }>;
 }) {
   const sp = await searchParams;
   const users = await db.user.findMany({
@@ -121,6 +121,11 @@ export default async function SignInPage({
             <p className="text-sm text-ink-400 mt-0.5">Choose your account to continue.</p>
           </div>
 
+          {sp?.sessionExpired && (
+            <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200/60 px-4 py-3 text-sm text-amber-800">
+              Your session is no longer valid. Please sign in again.
+            </div>
+          )}
           <UserPicker users={users} initialError={!!sp?.error} doSignIn={doSignIn} googleSignIn={googleSignIn} />
 
           <p className="text-center text-[10px] text-ink-300 mt-8 font-medium tracking-widest uppercase lg:hidden">

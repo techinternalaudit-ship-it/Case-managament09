@@ -98,13 +98,18 @@ const FIELD_LABELS: Record<string, string> = {
   subCategoryId: "Sub-Category",
 };
 
-export async function createCase(formData: FormData) {
+/**
+ * Returns anything the user can act on rather than throwing it. Next redacts
+ * thrown messages in production, so a throw would reach the form as the generic
+ * "specific message is omitted" text instead of naming the missing fields.
+ */
+export async function createCase(formData: FormData): Promise<{ error?: string } | void> {
   const u = await user();
-  if (!can(u, "case:create")) throw new Error("You don't have permission to create cases.");
+  if (!can(u, "case:create")) return { error: "You don't have permission to create cases." };
 
   // Verify the session user actually exists in the DB (handles stale JWT)
   const dbUser = await db.user.findUnique({ where: { id: u.id } });
-  if (!dbUser) throw new Error("Your session is stale. Please sign out and sign back in.");
+  if (!dbUser) return { error: "Your session is stale. Please sign out and sign back in." };
 
   const result = intakeSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) {
@@ -112,11 +117,11 @@ export async function createCase(formData: FormData) {
       .map((issue) => FIELD_LABELS[issue.path[0] as string] || issue.path[0])
       .filter(Boolean);
     const unique = [...new Set(missing)];
-    throw new Error(`Please fill the required fields: ${unique.join(", ")}`);
+    return { error: `Please fill the required fields: ${unique.join(", ")}` };
   }
   const parsed = result.data;
   const complaint = toDate(parsed.complaintDate);
-  if (!complaint) throw new Error("Invalid complaint date");
+  if (!complaint) return { error: "Invalid complaint date." };
   const tat = computeTAT({ complaintDate: complaint, severity: parsed.severity });
 
   const MAX_RETRIES = 3;

@@ -14,7 +14,7 @@ export function CaseIntakeForm({
   categories,
   investigators,
 }: {
-  action: (fd: FormData) => Promise<void>;
+  action: (fd: FormData) => Promise<{ error?: string } | void>;
   nextCaseNo: number;
   categories: Cat[];
   investigators: { id: string; name: string }[];
@@ -392,7 +392,10 @@ export function CaseIntakeForm({
                 const fd = new FormData(formRef.current);
                 startTransition(async () => {
                   try {
-                    await action(fd);
+                    const res = await action(fd);
+                    // The action reports problems by returning them; a throw
+                    // would arrive here with its message redacted in production.
+                    if (res?.error) { setError(res.error); return; }
                   } catch (err: unknown) {
                     setError(err instanceof Error ? err.message : "Something went wrong. Check all required fields.");
                   }

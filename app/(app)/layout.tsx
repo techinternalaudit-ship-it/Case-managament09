@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/utils";
@@ -68,6 +69,19 @@ function buildNav(roles: string): NavGroup[] {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
+
+  // The session is a signed JWT, so it survives the user row disappearing —
+  // after a database reset it still names an id that no longer exists. Catch
+  // that here rather than letting it surface as an opaque failure inside
+  // whichever form the user happened to submit first.
+  const account = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { active: true },
+  });
+  // Cannot call signOut() here — a Server Component may not modify cookies.
+  // Redirecting is enough: signing in again overwrites the stale token.
+  if (!account || !account.active) redirect("/sign-in?sessionExpired=1");
+
   const u = session.user;
   const initials = u.name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const nav = buildNav(u.roles || u.role);
