@@ -200,8 +200,10 @@ export async function importExcel(formData: FormData) {
         if (field) r[field] = v;
       }
 
-      let caseNo = asInt(r.caseNo);
-      if (!caseNo) continue;
+      // A row with no case number used to be dropped silently. Give it the
+      // next number in the sequence instead, so importing a sheet without a
+      // "Case No." column still works and the numbering just carries on.
+      let caseNo = asInt(r.caseNo) ?? nextCaseNo;
 
       // If case number already exists, auto-assign the next available number
       const exists = await db.case.findUnique({ where: { caseNo } });

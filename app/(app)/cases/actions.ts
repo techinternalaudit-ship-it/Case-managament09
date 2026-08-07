@@ -132,7 +132,9 @@ export async function createCase(formData: FormData): Promise<{ error?: string }
       created = await db.$transaction(async (tx) => {
         // Always fetch the true next caseNo inside the transaction
         const maxAgg = await tx.case.aggregate({ _max: { caseNo: true } });
-        const nextCaseNo = (maxAgg._max.caseNo ?? 100000) + 1;
+        // Cases are numbered 1, 2, 3, … — the first case on an empty database
+        // is 1. Must stay in step with the same calculation in cases/new/page.
+        const nextCaseNo = (maxAgg._max.caseNo ?? 0) + 1;
         // Use the higher of the form value and the DB-derived value
         const safeCaseNo = Math.max(parsed.caseNo, nextCaseNo);
 

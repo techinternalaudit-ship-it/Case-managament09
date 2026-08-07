@@ -18,9 +18,8 @@ export default async function NewCasePage() {
     db.case.aggregate({ _max: { caseNo: true } }),
   ]);
   // Must match the sequence createCase uses, or the number shown on the form
-  // differs from the one the case is actually saved with. On an empty database
-  // the old `(max ?? 0) + 1` produced 1 while the server assigned 100001.
-  const nextCaseNo = (max._max.caseNo ?? 100000) + 1;
+  // differs from the one the case is actually saved with.
+  const nextCaseNo = (max._max.caseNo ?? 0) + 1;
 
   return (
     <div className="space-y-5 max-w-4xl">
