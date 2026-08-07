@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
  */
 export const BCRYPT_COST = 12;
 
-export const PASSWORD_MIN_LENGTH = 6;
+export const PASSWORD_MIN_LENGTH = 1;
 
 export type PasswordCheck = { ok: true } | { ok: false; error: string };
 

@@ -65,10 +65,10 @@ export function ChangePasswordForm({
           type="password"
           name="newPassword"
           required
-          minLength={6}
+          minLength={1}
           disabled={loading}
           className="input disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="At least 6 characters"
+          placeholder="Enter a new password"
           autoComplete="new-password"
         />
       </div>
@@ -79,7 +79,7 @@ export function ChangePasswordForm({
           type="password"
           name="confirmPassword"
           required
-          minLength={6}
+          minLength={1}
           disabled={loading}
           className="input disabled:opacity-50 disabled:cursor-not-allowed"
           placeholder="Re-enter new password"

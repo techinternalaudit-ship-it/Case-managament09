@@ -7,6 +7,7 @@ import { can } from "@/lib/rbac";
 import { createUser, toggleUserActive, updateUserRoles, resolvePasswordReset, dismissPasswordReset } from "./actions";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
 import { DeleteButton } from "./delete-button";
+import { AddUserForm } from "./add-user-form";
 import { Icon } from "@/components/icon";
 
 export default async function UsersAdminPage() {
@@ -77,36 +78,7 @@ export default async function UsersAdminPage() {
         </div>
       )}
 
-      {/* Add user form */}
-      <form action={createUser} className="card p-5">
-        <h2 className="section-title mb-4">
-          <div className="h-6 w-6 rounded-lg bg-primary-100 text-primary-600 grid place-items-center"><Icon name="plus" className="h-3.5 w-3.5" /></div>
-          Add New User
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <Field label="Name"><input className="input" name="name" required /></Field>
-          <Field label="Email"><input className="input" name="email" type="email" required /></Field>
-          <Field label="Password"><input className="input" name="password" type="password" required /></Field>
-          <Field label="Roles">
-            <div className="flex flex-wrap gap-3 py-2">
-              {[
-                ["ADMIN", "Admin"],
-                ["INVESTIGATOR", "Investigator"],
-                ["REVIEWER_L1", "Reviewer (L1)"],
-                ["REVIEWER_L2", "Reviewer (L2)"],
-              ].map(([value, label]) => (
-                <label key={value} className="inline-flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" name="roles" value={value} className="rounded border-ink-300" />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </Field>
-          <Field label="Scope Entity"><input className="input" name="scopeEntity" placeholder="optional" /></Field>
-          <Field label="Scope Dept"><input className="input" name="scopeDept" placeholder="optional" /></Field>
-        </div>
-        <div className="flex justify-end mt-4"><button className="btn-primary"><Icon name="plus" className="h-4 w-4" /> Add user</button></div>
-      </form>
+      <AddUserForm createUser={createUser} />
 
       {/* Users table */}
       <div className="card overflow-hidden">
@@ -170,8 +142,4 @@ export default async function UsersAdminPage() {
       </div>
     </div>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="label">{label}</label>{children}</div>;
 }

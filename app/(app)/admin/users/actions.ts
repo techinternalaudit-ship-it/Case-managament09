@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { hashPassword, validatePassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
+import type { CreateUserState } from "./add-user-form";
 
 async function requireAdmin() {
   const s = await auth();
@@ -12,7 +13,15 @@ async function requireAdmin() {
   return s.user;
 }
 
-export async function createUser(formData: FormData) {
+/**
+ * Returns its outcome rather than throwing. A thrown error inside a server
+ * action replaces the whole page with Next's generic "server-side exception"
+ * screen; the form renders this state inline instead.
+ */
+export async function createUser(
+  _prev: CreateUserState,
+  formData: FormData,
+): Promise<CreateUserState> {
   await requireAdmin();
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const name = String(formData.get("name") ?? "");
@@ -22,19 +31,27 @@ export async function createUser(formData: FormData) {
   const role = rolesArr[0] || "INVESTIGATOR"; // primary role for backward compat
   const scopeEntity = String(formData.get("scopeEntity") ?? "") || null;
   const scopeDept = String(formData.get("scopeDept") ?? "") || null;
-  if (!email || !name || !password) throw new Error("BAD_REQUEST");
+  if (!email || !name || !password) {
+    return { error: "Name, email and password are all required." };
+  }
 
   const check = validatePassword(password, { email, name });
-  if (!check.ok) throw new Error(check.error);
+  if (!check.ok) return { error: check.error };
 
-  await db.user.create({
-    data: {
-      email, name, role, roles, scopeEntity, scopeDept,
-      passwordHash: hashPassword(password),
-      passwordChangedAt: new Date(),
-    },
-  });
+  try {
+    await db.user.create({
+      data: {
+        email, name, role, roles, scopeEntity, scopeDept,
+        passwordHash: hashPassword(password),
+        passwordChangedAt: new Date(),
+      },
+    });
+  } catch {
+    return { error: `A user with the email ${email} already exists.` };
+  }
+
   revalidatePath("/admin/users");
+  return { success: true };
 }
 
 export async function updateUserRoles(formData: FormData) {
