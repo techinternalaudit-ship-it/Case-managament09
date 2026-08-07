@@ -32,8 +32,6 @@ export async function createUser(formData: FormData) {
       email, name, role, roles, scopeEntity, scopeDept,
       passwordHash: hashPassword(password),
       passwordChangedAt: new Date(),
-      // Admin picked this password, so the user must replace it on first use.
-      mustChangePassword: true,
     },
   });
   revalidatePath("/admin/users");
@@ -83,11 +81,6 @@ export async function resolvePasswordReset(formData: FormData) {
       data: {
         passwordHash: hashPassword(newPassword),
         passwordChangedAt: new Date(),
-        // Reset by an admin who now knows it — force a change on next sign-in.
-        mustChangePassword: true,
-        // A successful reset should also clear any active lockout.
-        failedLoginAttempts: 0,
-        lockedUntil: null,
       },
     }),
     db.passwordResetRequest.update({

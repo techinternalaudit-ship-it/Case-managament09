@@ -3,14 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "./db";
 import { verifyPassword } from "./password";
-import { clientIp, rateLimit } from "./rate-limit";
-
-/** Failed attempts before the account is temporarily locked. */
-const MAX_FAILED_ATTEMPTS = 5;
-/** How long an account stays locked once the threshold is hit. */
-const LOCKOUT_MINUTES = 15;
-/** Per-IP sign-in attempts allowed per 15-minute window. */
-const IP_ATTEMPT_LIMIT = 20;
+import { clientIp } from "./rate-limit";
 
 /**
  * A real bcrypt hash of a random string. Compared against when the email is
@@ -50,7 +43,6 @@ declare module "next-auth" {
       roles: string;
       scopeEntity?: string | null;
       scopeDept?: string | null;
-      mustChangePassword?: boolean;
     };
   }
   interface User {
@@ -58,7 +50,6 @@ declare module "next-auth" {
     roles: string;
     scopeEntity?: string | null;
     scopeDept?: string | null;
-    mustChangePassword?: boolean;
   }
 }
 
@@ -116,13 +107,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const headers = request?.headers;
         if (!email || !password) return null;
 
-        // Throttle by source IP so one host cannot spray many accounts.
-        const ip = headers ? clientIp(headers) : null;
-        if (ip && !rateLimit(`login:ip:${ip}`, IP_ATTEMPT_LIMIT, 15 * 60_000).allowed) {
-          await logAttempt({ email, success: false, reason: "RATE_LIMITED", headers });
-          return null;
-        }
-
         const user = await db.user.findUnique({ where: { email } });
 
         if (!user) {
@@ -135,35 +119,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           await logAttempt({ email, success: false, reason: "INACTIVE", headers });
           return null;
         }
-        if (user.lockedUntil && user.lockedUntil > new Date()) {
-          await logAttempt({ email, success: false, reason: "LOCKED", headers });
-          return null;
-        }
 
         const ok = await verifyPassword(password, user.passwordHash);
 
         if (!ok) {
-          const attempts = user.failedLoginAttempts + 1;
-          const lock = attempts >= MAX_FAILED_ATTEMPTS;
-          await db.user.update({
-            where: { id: user.id },
-            data: {
-              failedLoginAttempts: lock ? 0 : attempts,
-              lockedUntil: lock ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000) : null,
-            },
-          });
-          await logAttempt({
-            email,
-            success: false,
-            reason: lock ? "LOCKED_OUT" : "BAD_PASSWORD",
-            headers,
-          });
+          await logAttempt({ email, success: false, reason: "BAD_PASSWORD", headers });
           return null;
         }
 
         await db.user.update({
           where: { id: user.id },
-          data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
+          data: { lastLoginAt: new Date() },
         });
         await logAttempt({ email, success: true, headers });
 
@@ -175,7 +141,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           roles: user.roles ?? user.role,
           scopeEntity: user.scopeEntity,
           scopeDept: user.scopeDept,
-          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -205,19 +170,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         (token as Record<string, unknown>).roles = (user as any).roles ?? (user as any).role ?? "";
         (token as Record<string, unknown>).scopeEntity = u.scopeEntity ?? null;
         (token as Record<string, unknown>).scopeDept = u.scopeDept ?? null;
-        (token as Record<string, unknown>).mustChangePassword =
-          (user as { mustChangePassword?: boolean }).mustChangePassword ?? false;
       }
       return token;
     },
     session: async ({ session, token }) => {
-      const t = token as unknown as { uid: string; role: string; roles: string; scopeEntity?: string | null; scopeDept?: string | null; mustChangePassword?: boolean };
+      const t = token as unknown as { uid: string; role: string; roles: string; scopeEntity?: string | null; scopeDept?: string | null };
       session.user.id = t.uid;
       session.user.role = t.role;
       session.user.roles = t.roles;
       session.user.scopeEntity = t.scopeEntity;
       session.user.scopeDept = t.scopeDept;
-      session.user.mustChangePassword = t.mustChangePassword ?? false;
       return session;
     },
   },

@@ -1,21 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import crypto from "node:crypto";
 import { hashPassword } from "../lib/password";
 
 const db = new PrismaClient();
 
-/**
- * Seeded accounts must never ship with a guessable password. Uses SEED_PASSWORD
- * when provided, otherwise generates a random one and prints it once — there is
- * no way to recover it afterwards, only to reset it from the admin screen.
- */
-function resolveSeedPassword(): { password: string; generated: boolean } {
-  const fromEnv = process.env.SEED_PASSWORD;
-  if (fromEnv) return { password: fromEnv, generated: false };
-  // 24 base64url chars: mixed case, digits, and a symbol appended to satisfy policy.
-  const random = crypto.randomBytes(18).toString("base64url").slice(0, 20);
-  return { password: `${random}#Aa1`, generated: true };
-}
+/** Shared password for the seeded accounts. Override with SEED_PASSWORD. */
+const SEED_PASSWORD = process.env.SEED_PASSWORD || "password";
 
 const CATEGORIES: Record<string, string[]> = {
   "Employee Fraud": [
@@ -69,8 +58,7 @@ async function main() {
   }
 
   // Users
-  const seed = resolveSeedPassword();
-  const seedHash = hashPassword(seed.password);
+  const seedHash = hashPassword(SEED_PASSWORD);
   const hash = (_pw: string) => seedHash;
 
   const users = [
@@ -115,26 +103,11 @@ async function main() {
   for (const u of users) {
     await db.user.upsert({
       where: { email: u.email },
-      // Seeded credentials are shared, so every account must set its own on first use.
-      create: { ...u, passwordChangedAt: new Date(), mustChangePassword: true },
+      create: { ...u, passwordChangedAt: new Date() },
       update: {},
     });
   }
 
-  if (seed.generated) {
-    console.log(`
-${"=".repeat(64)}
-  Seeded accounts were given a RANDOM password. Save it now — it is
-  not stored anywhere and cannot be recovered, only reset by an admin.
-
-      password: ${seed.password}
-
-  Every seeded account must change it on first sign-in.
-${"=".repeat(64)}
-`);
-  } else {
-    console.log("Seeded accounts use the password from SEED_PASSWORD.");
-  }
 
   // App settings
   await db.appSetting.upsert({
@@ -160,7 +133,7 @@ ${"=".repeat(64)}
   }
   await db.user.deleteMany({ where: { email: { in: legacyEmails } } });
 
-  console.log("✅ Seed complete. Accounts (all share the password above):");
+  console.log(`✅ Seed complete. All accounts use the password: ${SEED_PASSWORD}`);
   console.log("   ruchika@vigilance.local  — Admin, Reviewer L2");
   console.log("   julie@vigilance.local    — Investigator");
   console.log("   sakshi@vigilance.local   — Investigator");

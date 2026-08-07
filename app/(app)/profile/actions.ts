@@ -1,13 +1,13 @@
 "use server";
 
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hashPassword, validatePassword, verifyPassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
 
 export async function changeOwnPassword(
   formData: FormData,
-): Promise<{ error?: string; success?: boolean; signedOut?: boolean }> {
+): Promise<{ error?: string; success?: boolean }> {
   const session = await auth();
   if (!session?.user) return { error: "Not signed in." };
 
@@ -40,15 +40,9 @@ export async function changeOwnPassword(
     data: {
       passwordHash: hashPassword(newPassword),
       passwordChangedAt: new Date(),
-      mustChangePassword: false,
     },
   });
 
-  // Invalidate the current session: it carries a stale mustChangePassword claim,
-  // and dropping it means a password change also revokes any other stolen copy
-  // of the old token. The caller signs in again with the new password.
-  await signOut({ redirect: false });
-
   revalidatePath("/profile");
-  return { success: true, signedOut: true };
+  return { success: true };
 }
