@@ -120,11 +120,19 @@ export async function dismissPasswordReset(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
-export async function deleteUser(formData: FormData) {
+/**
+ * Returns the reason a delete was refused instead of throwing it. Next redacts
+ * thrown messages in production, so the caller would otherwise only be able to
+ * show "An error occurred in the Server Components render".
+ */
+export async function deleteUser(
+  _prev: { error?: string } | null,
+  formData: FormData,
+): Promise<{ error?: string } | null> {
   const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  if (!id) throw new Error("BAD_REQUEST");
-  if (id === admin.id) throw new Error("Cannot delete yourself");
+  if (!id) return { error: "No user selected." };
+  if (id === admin.id) return { error: "You cannot delete your own account." };
 
   const u = await db.user.findUnique({
     where: { id },
@@ -132,12 +140,15 @@ export async function deleteUser(formData: FormData) {
       _count: { select: { assignedCases: true, createdCases: true } },
     },
   });
-  if (!u) throw new Error("NOT_FOUND");
+  if (!u) return { error: "That user no longer exists." };
 
   if (u._count.assignedCases > 0 || u._count.createdCases > 0) {
-    throw new Error(
-      "Cannot delete user with associated cases. Reassign or close their cases first, or deactivate the user instead."
-    );
+    const parts: string[] = [];
+    if (u._count.assignedCases > 0) parts.push(`${u._count.assignedCases} assigned`);
+    if (u._count.createdCases > 0) parts.push(`${u._count.createdCases} created`);
+    return {
+      error: `${u.name} has ${parts.join(" and ")} case(s) and cannot be deleted. Reassign those cases first, or use Deactivate instead.`,
+    };
   }
 
   await db.auditLog.deleteMany({ where: { userId: id } });
@@ -145,4 +156,5 @@ export async function deleteUser(formData: FormData) {
   await db.user.delete({ where: { id } });
   revalidatePath("/admin/users");
   revalidatePath("/sign-in");
+  return null;
 }

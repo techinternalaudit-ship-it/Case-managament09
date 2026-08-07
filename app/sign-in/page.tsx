@@ -4,12 +4,22 @@ import { Icon } from "@/components/icon";
 import { UserPicker } from "./user-picker";
 import { db } from "@/lib/db";
 
-async function doSignIn(formData: FormData): Promise<{ error: boolean }> {
+async function doSignIn(
+  formData: FormData,
+): Promise<{ error: boolean; reason?: "inactive" | "missing" }> {
   "use server";
   const userId = String(formData.get("userId") ?? "");
   const password = String(formData.get("password") ?? "");
-  const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { email: true } }) : null;
-  if (!user) return { error: true };
+  const user = userId
+    ? await db.user.findUnique({ where: { id: userId }, select: { email: true, active: true } })
+    : null;
+  if (!user) return { error: true, reason: "missing" };
+
+  // authorize() rejects inactive accounts the same way it rejects a bad
+  // password, so without this the user is told their password is wrong when
+  // the real reason is that their account was switched off.
+  if (!user.active) return { error: true, reason: "inactive" };
+
   try {
     await signIn("credentials", { email: user.email, password, redirect: false });
   } catch {

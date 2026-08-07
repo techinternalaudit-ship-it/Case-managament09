@@ -78,6 +78,17 @@ select.input {
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
+/*
+ * The open dropdown list is drawn by the browser, not the page, and it takes
+ * its colours from the select itself. In dark mode the select background is
+ * rgba(255,255,255,0.04) — nearly transparent — so the list rendered as pale
+ * grey text on white. Options need explicit, fully opaque colours.
+ */
+.dark select.input option,
+.dark select.input optgroup {
+  background-color: #161b28;
+  color: #e5e7eb;
+}
 
 .label {
   @apply block text-xs font-semibold text-ink-600 dark:text-gray-400 mb-1 tracking-wide uppercase;

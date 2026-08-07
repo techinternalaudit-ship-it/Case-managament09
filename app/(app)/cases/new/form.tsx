@@ -157,7 +157,12 @@ export function CaseIntakeForm({
       <div className={step === 0 ? "" : "hidden"}>
         <h2 className="section-title mb-3">Case header</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Case No.*"><input className="input" name="caseNo" type="number" required defaultValue={nextCaseNo} /></Field>
+          <Field label="Case No.">
+            {/* Assigned by the server, which always takes the next free number.
+                readOnly rather than disabled so the value is still submitted. */}
+            <input className="input bg-ink-100/60 dark:bg-white/[0.03] cursor-not-allowed" name="caseNo" type="number" required readOnly defaultValue={nextCaseNo} />
+            <p className="helper">Assigned automatically.</p>
+          </Field>
           <Field label="Escalation Channel*">
             <select className="input" name="escalationChannel" required defaultValue="">
               <option value="" disabled>Select…</option>

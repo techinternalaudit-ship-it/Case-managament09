@@ -1,7 +1,9 @@
 "use client";
 
 import { deleteUser } from "./actions";
-import { useTransition } from "react";
+import { useActionState } from "react";
+
+export type DeleteState = { error?: string } | null;
 
 export function DeleteButton({
   userId,
@@ -12,33 +14,38 @@ export function DeleteButton({
   userName: string;
   currentUserId: string;
 }) {
-  const [pending, startTransition] = useTransition();
+  // useActionState rather than useTransition + a direct call: a server action
+  // refreshes the route when it finishes, which remounts this button and wipes
+  // plain useState. React keeps action state across that refresh, so the
+  // refusal message survives long enough to be read.
+  const [state, formAction, pending] = useActionState(deleteUser, null);
   const isSelf = userId === currentUserId;
-
-  function handleClick() {
-    if (isSelf) return;
-    if (!confirm(`Permanently delete user "${userName}"? This cannot be undone.`)) return;
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.append("id", userId);
-      try {
-        await deleteUser(fd);
-      } catch (e: unknown) {
-        alert(e instanceof Error ? e.message : "Failed to delete user");
-      }
-    });
-  }
 
   if (isSelf) return null;
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={pending}
-      className="text-xs text-rose-600 hover:underline disabled:opacity-50"
+    <form
+      action={formAction}
+      className="inline"
+      onSubmit={(e) => {
+        if (!confirm(`Permanently delete user "${userName}"? This cannot be undone.`)) {
+          e.preventDefault();
+        }
+      }}
     >
-      {pending ? "Deleting…" : "Delete"}
-    </button>
+      <input type="hidden" name="id" value={userId} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="text-xs text-rose-600 hover:underline disabled:opacity-50"
+      >
+        {pending ? "Deleting…" : "Delete"}
+      </button>
+      {state?.error && (
+        <p className="mt-1 text-[11px] leading-snug text-rose-600 dark:text-rose-400 max-w-[16rem] whitespace-normal text-left">
+          {state.error}
+        </p>
+      )}
+    </form>
   );
 }

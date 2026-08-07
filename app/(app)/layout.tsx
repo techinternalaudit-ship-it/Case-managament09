@@ -22,6 +22,7 @@ type NavGroup = { group: string; items: NavItem[] };
 function buildNav(roles: string): NavGroup[] {
   const roleSet = roles.split(",").map(r => r.trim());
   const isReviewer = roleSet.includes("REVIEWER_L1") || roleSet.includes("REVIEWER_L2") || roleSet.includes("ADMIN");
+  const isAdmin = roleSet.includes("ADMIN");
   const nav: NavGroup[] = [
     {
       group: "Workspace",
@@ -31,7 +32,9 @@ function buildNav(roles: string): NavGroup[] {
         { href: "/cases/new", label: "New Case", icon: "plus" },
         ...(isReviewer ? [{ href: "/reviews" as const, label: "Pending Reviews", icon: "check" as const }] : []),
         { href: "/how-it-works", label: "How it Works", icon: "help" as const },
-        { href: "/admin/employees", label: "Employee Master", icon: "briefcase" },
+        // /admin/employees requires user:manage, so showing it to everyone
+        // gave non-admins a link that only ever renders "Forbidden".
+        ...(isAdmin ? [{ href: "/admin/employees" as const, label: "Employee Master", icon: "briefcase" as const }] : []),
       ],
     },
     {

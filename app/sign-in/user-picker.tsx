@@ -33,24 +33,27 @@ export function UserPicker({
 }: {
   users: PickerUser[];
   initialError: boolean;
-  doSignIn: (data: FormData) => Promise<{ error: boolean }>;
+  doSignIn: (data: FormData) => Promise<{ error: boolean; reason?: "inactive" | "missing" }>;
   googleSignIn: () => void;
 }) {
   const [selected, setSelected] = useState<PickerUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
+  const [reason, setReason] = useState<"inactive" | "missing" | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
   const [resetState, setResetState] = useState<ResetState>("idle");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(false);
+    setReason(undefined);
     setLoading(true);
     const fd = new FormData(e.currentTarget);
     try {
       const result = await doSignIn(fd);
       if (result?.error) {
         setError(true);
+        setReason(result.reason);
         setAttempt((n) => n + 1);
       }
       // On success the action performs a server-side redirect and this line
@@ -162,7 +165,13 @@ export function UserPicker({
         {error && (
           <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600 flex items-start gap-2">
             <Icon name="alert-circle" className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>Incorrect password. Please try again.</span>
+            <span>
+              {reason === "inactive"
+                ? "This account has been deactivated. Please contact your administrator."
+                : reason === "missing"
+                ? "That account no longer exists. Please choose another user."
+                : "Incorrect password. Please try again."}
+            </span>
           </div>
         )}
 
